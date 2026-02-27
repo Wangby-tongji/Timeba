@@ -110,20 +110,13 @@ If installation fails:
 
 ---
 
-## Prepare Data (Argoverse Forecasting v1.1)
+## Prepare Data
 
 A helper script is provided:
 
 ```bash
 bash get_data.sh
 ```
-
-This script will:
-1) Download HD maps + forecasting train/val/test (v1.1)
-2) Copy map files into your python site-packages
-3) Run preprocessing (`preprocess_data.py -m lanegcn`) which may take hours
-
-> Tip: Preprocessing is usually the slowest step; consider running it once on a fast SSD.
 
 ---
 
