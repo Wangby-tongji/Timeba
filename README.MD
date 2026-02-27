@@ -1,16 +1,5 @@
-# LaneGCN: Learning Lane Graph Representations for Motion Forecasting
-
-
- [Paper](https://arxiv.org/pdf/2007.13732) | [Slides](http://www.cs.toronto.edu/~byang/slides/LaneGCN.pdf)  | [Project Page]() | [**ECCV 2020 Oral** Video](https://yun.sfo2.digitaloceanspaces.com/public/lanegcn/video.mp4)
-
-Ming Liang, Bin Yang, Rui Hu, Yun Chen, Renjie Liao, Song Feng, Raquel Urtasun
-
-
-**Rank 1st** in [Argoverse Motion Forecasting Competition](https://evalai.cloudcv.org/web/challenges/challenge-page/454/leaderboard/1279)
-
-
+# Timeba
 ![img](misc/arch.png)
-
 
 Table of Contents
 =================
@@ -21,13 +10,10 @@ Table of Contents
   * [Licence](#licence)
   * [Citation](#citation)
 
-
-
 ## Install Dependancy
 You need to install following packages in order to run the code:
 - [PyTorch>=1.3.1](https://pytorch.org/)
 - [Argoverse API](https://github.com/argoai/argoverse-api#installation)
-
 
 1. Following is an example of create environment **from scratch** with anaconda, you can use pip as well:
 ```sh
@@ -113,19 +99,3 @@ Labels(Red) Prediction (Green) Other agents(Blue)
 
 **Quantitative results**
 ![img](misc/res_quan.png)
-
-## Licence
-check [LICENSE](LICENSE)
-
-## Citation
-If you use our source code, please consider citing the following:
-```bibtex
-@InProceedings{liang2020learning,
-  title={Learning lane graph representations for motion forecasting},
-  author={Liang, Ming and Yang, Bin and Hu, Rui and Chen, Yun and Liao, Renjie and Feng, Song and Urtasun, Raquel},
-  booktitle = {ECCV},
-  year={2020}
-}
-```
-
-If you have any questions regarding the code, please open an issue and [@chenyuntc](https://github.com/chenyuntc).
