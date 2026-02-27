@@ -17,8 +17,8 @@ You need to install following packages in order to run the code:
 
 1. Following is an example of create environment **from scratch** with anaconda, you can use pip as well:
 ```sh
-conda create --name lanegcn python=3.7
-conda activate lanegcn
+conda create --name timeba python=3.7
+conda activate timeba
 conda install pytorch==1.5.1 torchvision cudatoolkit=10.2 -c pytorch # pytorch=1.5.1 when the code is release
 
 # install argoverse api
@@ -99,3 +99,4 @@ Labels(Red) Prediction (Green) Other agents(Blue)
 
 **Quantitative results**
 ![img](misc/res_quan.png)
+
