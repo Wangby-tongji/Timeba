@@ -1,103 +1,218 @@
-# Timeba
-![img](misc/arch.png)
+# Timeba: Mamba-augmented Trajectory Forecasting
 
-Table of Contents
-=================
-  * [Install Dependancy](#install-dependancy)
-  * [Prepare Data](#prepare-data-argoverse-motion-forecasting)
-  * [Training](#training)
-  * [Testing](#testing)
-  * [Licence](#licence)
-  * [Citation](#citation)
+Timeba is a trajectory forecasting research codebase built on a LaneGCN-style pipeline, with **Mamba (Selective SSM)** blocks integrated into the actor encoder / 1D U-Net style temporal modeling.
 
-## Install Dependancy
-You need to install following packages in order to run the code:
-- [PyTorch>=1.3.1](https://pytorch.org/)
-- [Argoverse API](https://github.com/argoai/argoverse-api#installation)
+> ⚠️ Note: This repo currently contains multiple experimental model variants (e.g., `NGSIM24_5_4.py`, `highD*.py`, `inD*.py`, `exiD*.py`) and training scripts (`train1.py`, `train2.py`). The default data pipeline in this repo is based on **Argoverse Motion Forecasting (v1.1)**.
 
-1. Following is an example of create environment **from scratch** with anaconda, you can use pip as well:
-```sh
-conda create --name timeba python=3.7
+---
+
+## Table of Contents
+- [Requirements](#requirements)
+- [Install (Recommended)](#install-recommended)
+- [Mamba Installation Notes](#mamba-installation-notes)
+- [Prepare Data (Argoverse Forecasting v1.1)](#prepare-data-argoverse-forecasting-v11)
+- [Training](#training)
+- [Testing / Evaluation](#testing--evaluation)
+- [Troubleshooting](#troubleshooting)
+- [License & Citation](#license--citation)
+
+---
+
+## Requirements
+
+### OS / Hardware
+- **Linux + NVIDIA GPU** is strongly recommended.
+- `mamba-ssm` / `causal-conv1d` require **CUDA ≥ 11.6** and **PyTorch ≥ 1.12** (GPU build).  
+  See official Mamba installation requirements:
+  - https://github.com/state-spaces/mamba
+
+> If you only have CPU, you will need to disable Mamba usage or refactor the code.
+
+### Python
+- ✅ Recommended: **Python 3.10** (3.11 also works in most cases)
+- Not recommended: Python 3.7/3.8 (too old for modern PyTorch + mamba ecosystem)
+
+---
+
+## Install (Recommended)
+
+### 1) Create a clean environment
+Using conda:
+
+```bash
+conda create -n timeba python=3.10 -y
 conda activate timeba
-conda install pytorch==1.5.1 torchvision cudatoolkit=10.2 -c pytorch # pytorch=1.5.1 when the code is release
-
-# install argoverse api
-pip install  git+https://github.com/argoai/argoverse-api.git
-
-# install others dependancy
-pip install scikit-image IPython tqdm ipdb
+python -V
 ```
 
-2. \[Optional but Recommended\] Install [Horovod](https://github.com/horovod/horovod#install) and `mpi4py` for distributed training. Horovod is more efficient than `nn.DataParallel` for mulit-gpu training and easier to use than `nn.DistributedDataParallel`. Before install horovod, make sure you have openmpi installed (`sudo apt-get install -y openmpi-bin`).
-```sh
-pip install mpi4py
+### 2) Install PyTorch (GPU)
+Install a CUDA-enabled PyTorch build that matches your driver / CUDA runtime. Choose **one**:
 
-# install horovod with GPU support, this may take a while
-HOROVOD_GPU_OPERATIONS=NCCL pip install horovod==0.19.4
-
-# if you have only SINGLE GPU, install for code-compatibility
-pip install horovod
+**Option A (conda, recommended if you use conda):**
+```bash
+# Example (CUDA 12.1)
+conda install pytorch torchvision pytorch-cuda=12.1 -c pytorch -c nvidia
 ```
-if you have any issues regarding horovod, please refer to [horovod github](https://github.com/horovod/horovod)
 
-## Prepare Data: Argoverse Motion Forecasting
-You could check the scripts, and download the processed data instead of running it for hours.
-```sh
+**Option B (pip):**
+Use the PyTorch official install selector and install the correct CUDA wheel for your system.
+
+### 3) Install core python deps
+```bash
+pip install -U pip setuptools wheel
+pip install numpy scipy pandas tqdm ipdb matplotlib scikit-image
+```
+
+### 4) Install Argoverse API
+Install directly from GitHub:
+
+```bash
+pip install "git+https://github.com/argoai/argoverse-api.git"
+```
+
+Or clone + editable install (useful if you want to modify the API):
+
+```bash
+git clone https://github.com/argoai/argoverse-api.git
+pip install -e ./argoverse-api
+```
+
+### 5) Install Mamba (mamba-ssm + causal-conv1d)
+**Recommended one-liner (installs both):**
+```bash
+pip install "mamba-ssm[causal-conv1d]" --no-build-isolation
+```
+
+If you prefer explicit installation:
+```bash
+pip install "causal-conv1d>=1.4.0" --no-build-isolation
+pip install "mamba-ssm" --no-build-isolation
+```
+
+### 6) Sanity check
+```bash
+python - <<'PY'
+import torch
+print("torch:", torch.__version__, "cuda:", torch.version.cuda, "is_available:", torch.cuda.is_available())
+
+from mamba_ssm import Mamba
+x = torch.randn(2, 64, 16, device="cuda")
+m = Mamba(d_model=16, d_state=16, d_conv=4, expand=2).cuda()
+y = m(x)
+print("mamba ok:", y.shape)
+PY
+```
+
+---
+
+## Mamba Installation Notes
+
+- Official Mamba install guide suggests:
+  - `pip install mamba-ssm[causal-conv1d]`
+  - add `--no-build-isolation` if pip complains about PyTorch/CUDA toolchain.
+- Requirements (official):
+  - Linux, NVIDIA GPU, CUDA ≥ 11.6, PyTorch ≥ 1.12.
+
+If installation fails:
+1. **Make sure PyTorch is installed first** (GPU build), then install `mamba-ssm`.
+2. Try verbose install:
+   ```bash
+   pip install "mamba-ssm[causal-conv1d]" --no-build-isolation -v
+   ```
+3. Ensure `nvcc -V` works if pip is building from source.
+4. Prefer matching versions: (PyTorch CUDA wheel) ↔ (system driver).
+
+---
+
+## Prepare Data (Argoverse Forecasting v1.1)
+
+A helper script is provided:
+
+```bash
 bash get_data.sh
 ```
 
+This script will:
+1) Download HD maps + forecasting train/val/test (v1.1)
+2) Copy map files into your python site-packages
+3) Run preprocessing (`preprocess_data.py -m lanegcn`) which may take hours
+
+> Tip: Preprocessing is usually the slowest step; consider running it once on a fast SSD.
+
+---
+
 ## Training
 
+### Single GPU training
+Use `train2.py` (prints parameter count and logs into `save_dir/log`):
 
-### [Recommended] Training with Horovod-multigpus
-
-
-```sh
-# single node with 4 gpus
-horovodrun -np 4 -H localhost:4 python /path/to/train.py -m lanegcn
-
-# 2 nodes, each with 4 gpus
-horovodrun -np 8 -H serverA:4,serverB:4 python /path/to/train.py -m lanegcn
-``` 
-
-It takes 8 hours to train the model in 4 GPUS (RTX 5000) with horovod.
-
-We also supply [training log](misc/train_log.txt) for you to debug.
-
-### [Recommended] Training/Debug with Horovod in single gpu 
-```sh
-python train.py -m lanegcn
+```bash
+python train2.py -m NGSIM24_5_4
+# or
+python train2.py -m highD64
+# or
+python train2.py -m inD3_5_6
 ```
 
+Resume / eval:
 
-## Testing
-You can download pretrained model from [here](http://yun.sfo2.digitaloceanspaces.com/public/lanegcn/36.000.ckpt) 
-### Inference test set for submission
-```
-python test.py -m lanegcn --weight=/absolute/path/to/36.000.ckpt --split=test
-```
-### Inference validation set for metrics
-```
-python test.py -m lanegcn --weight=36.000.ckpt --split=val
+```bash
+python train2.py -m NGSIM24_5_4 --resume /absolute/path/to/ckpt.pth
+python train2.py -m NGSIM24_5_4 --eval --weight /absolute/path/to/ckpt.pth
 ```
 
-**Qualitative results**
+### Multi-GPU / Distributed
+This repo historically included Horovod instructions, but your current training entrypoints may differ by branch/version.
+If you decide to use Horovod, install `mpi4py` + `horovod` and launch with `horovodrun`.
 
-Labels(Red) Prediction (Green) Other agents(Blue)
+---
 
+## Testing / Evaluation
 
+### Run inference on val/test
+```bash
+python test.py -m lanegcn --weight /absolute/path/to/ckpt.pth --split=val
+python test.py -m lanegcn --weight /absolute/path/to/ckpt.pth --split=test
+```
 
+For validation split, the script calls Argoverse metric computation.
 
+---
 
-<p>
-<img src="misc/5304.gif" width = "30.333%"  align="left" />
-<img src="misc/25035.gif" width = "30.333%" align="center"  />
- <img src="misc/19406.gif" width = "30.333%" align="right"   />
-</p>
+## Troubleshooting
 
-------
+### 1) `from fractions import gcd` crashes on Python >= 3.9
+Your code uses `from fractions import gcd` in multiple files; this breaks on modern Python.
 
-**Quantitative results**
-![img](misc/res_quan.png)
+**Fix (one-time patch):**
+```bash
+python - <<'PY'
+import pathlib
+root = pathlib.Path(".")
+for p in root.rglob("*.py"):
+    s = p.read_text(encoding="utf-8", errors="ignore")
+    if "from fractions import gcd" in s:
+        p.write_text(s.replace("from fractions import gcd", "from math import gcd"),
+                    encoding="utf-8")
+        print("patched:", p)
+PY
+```
 
+### 2) `mamba-ssm / causal-conv1d` install fails
+- Ensure CUDA-enabled PyTorch is installed first.
+- Retry with:
+  ```bash
+  pip install "mamba-ssm[causal-conv1d]" --no-build-isolation
+  ```
+- Check CUDA toolchain / driver compatibility.
 
+### 3) Shape mismatch in temporal U-Net
+Some model variants downsample time by stride=2 multiple times.
+Ensure your input sequence length is compatible (often needs to be divisible by 8).
+
+---
+
+## License & Citation
+
+- This repository contains research code. Please check `LICENSE` if provided.
+- If you use Mamba, please cite the Mamba paper (see the official Mamba repo / PyPI page).
