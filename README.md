@@ -63,21 +63,7 @@ pip install -U pip setuptools wheel
 pip install numpy scipy pandas tqdm ipdb matplotlib scikit-image
 ```
 
-### 4) Install Argoverse API
-Install directly from GitHub:
-
-```bash
-pip install "git+https://github.com/argoai/argoverse-api.git"
-```
-
-Or clone + editable install (useful if you want to modify the API):
-
-```bash
-git clone https://github.com/argoai/argoverse-api.git
-pip install -e ./argoverse-api
-```
-
-### 5) Install Mamba (mamba-ssm + causal-conv1d)
+### 4) Install Mamba (mamba-ssm + causal-conv1d)
 **Recommended one-liner (installs both):**
 ```bash
 pip install "mamba-ssm[causal-conv1d]" --no-build-isolation
@@ -89,7 +75,7 @@ pip install "causal-conv1d>=1.4.0" --no-build-isolation
 pip install "mamba-ssm" --no-build-isolation
 ```
 
-### 6) Sanity check
+### 5) Sanity check
 ```bash
 python - <<'PY'
 import torch
