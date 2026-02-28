@@ -160,24 +160,7 @@ For validation split, the script calls Argoverse metric computation.
 
 ## Troubleshooting
 
-### 1) `from fractions import gcd` crashes on Python >= 3.9
-Your code uses `from fractions import gcd` in multiple files; this breaks on modern Python.
-
-**Fix (one-time patch):**
-```bash
-python - <<'PY'
-import pathlib
-root = pathlib.Path(".")
-for p in root.rglob("*.py"):
-    s = p.read_text(encoding="utf-8", errors="ignore")
-    if "from fractions import gcd" in s:
-        p.write_text(s.replace("from fractions import gcd", "from math import gcd"),
-                    encoding="utf-8")
-        print("patched:", p)
-PY
-```
-
-### 2) `mamba-ssm / causal-conv1d` install fails
+### 1) `mamba-ssm / causal-conv1d` install fails
 - Ensure CUDA-enabled PyTorch is installed first.
 - Retry with:
   ```bash
@@ -185,7 +168,7 @@ PY
   ```
 - Check CUDA toolchain / driver compatibility.
 
-### 3) Shape mismatch in temporal U-Net
+### 2) Shape mismatch in temporal U-Net
 Some model variants downsample time by stride=2 multiple times.
 Ensure your input sequence length is compatible (often needs to be divisible by 8).
 
