@@ -123,21 +123,21 @@ bash get_data.sh
 ## Training
 
 ### Single GPU training
-Use `train2.py` (prints parameter count and logs into `save_dir/log`):
+Use `train.py` (prints parameter count and logs into `save_dir/log`):
 
 ```bash
-python train2.py -m NGSIM24_5_4
+python train.py -m NGSIM24_5_4
 # or
-python train2.py -m highD64
+python train.py -m highD64
 # or
-python train2.py -m inD3_5_6
+python train.py -m inD3_5_6
 ```
 
 Resume / eval:
 
 ```bash
-python train2.py -m NGSIM24_5_4 --resume /absolute/path/to/ckpt.pth
-python train2.py -m NGSIM24_5_4 --eval --weight /absolute/path/to/ckpt.pth
+python train.py -m NGSIM24_5_4 --resume /absolute/path/to/ckpt.pth
+python train.py -m NGSIM24_5_4 --eval --weight /absolute/path/to/ckpt.pth
 ```
 
 ### Multi-GPU / Distributed
@@ -150,8 +150,8 @@ If you decide to use Horovod, install `mpi4py` + `horovod` and launch with `horo
 
 ### Run inference on val/test
 ```bash
-python test.py -m lanegcn --weight /absolute/path/to/ckpt.pth --split=val
-python test.py -m lanegcn --weight /absolute/path/to/ckpt.pth --split=test
+python test.py -m NGSIM24_5_4 --weight /home/ps/WorkSpaces/wby/Timeba/Timeba/results/NGSIM24_5_4/48.000.ckpt --split=val
+python test.py -m NGSIM24_5_4 --weight /home/ps/WorkSpaces/wby/Timeba/Timeba/results/NGSIM24_5_4/48.000.ckpt --split=test
 ```
 
 For validation split, the script calls Argoverse metric computation.
