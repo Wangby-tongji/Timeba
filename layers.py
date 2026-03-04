@@ -3,7 +3,7 @@
 
 
 import numpy as np
-from fractions import gcd
+from math import gcd
 from numbers import Number
 from mamba_ssm.modules.mamba_simple import Mamba
 import torch

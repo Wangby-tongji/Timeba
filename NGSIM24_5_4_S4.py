@@ -155,62 +155,44 @@ def actor_gather(actors: List[Tensor]) -> Tuple[Tensor, List[Tensor]]:
 
 
 class ActorNet(nn.Module):
+    """Actor feature extractor (ablation: **pure SSM stacking**).
+
+    - Keeps the temporal resolution (no UNet / no multi-scale skip connections).
+    - Stacks MambaBlock layers on the actor history sequence and pools the last step.
     """
-    Actor feature extractor with MambaBlock
-    """
+
     def __init__(self, config):
         super(ActorNet, self).__init__()
-        self.config = config
         norm = "GN"
         ng = 1
 
         n_in = 5
-        n_out = [64, 128, 256, 512]
-        blocks = [MambaBlock, MambaBlock, MambaBlock, MambaBlock]
-        num_blocks = [1, 1, 1, 1]
-
-        groups = []
-        for i in range(len(num_blocks)):
-            group = []
-            if i == 0:
-                group.append(blocks[i](n_in, n_out[i], norm=norm, ng=ng))
-            else:
-                group.append(blocks[i](n_in, n_out[i], stride=2, norm=norm, ng=ng))
-
-            groups.append(nn.Sequential(*group))
-            n_in = n_out[i]
-        self.groups = nn.ModuleList(groups) #self.groups有3个group，每个group有1个实例块，最后一个group维度是[M, 512, 5]
-        
         n = config["n_actor"]
-        lateral = []
-        for i in range(len(n_out)):
-            lateral.append(Conv1d(n_out[i], n, norm=norm, ng=ng, act=False))
-        self.lateral = nn.ModuleList(lateral)
 
-        self.Unet = nn.ModuleList()
-        for i in range(len(n_out)):
-            self.Unet.append(Unet1d(n_out[i], 512))
+        # Depth of the SSM stack (including input/output blocks).
+        # You can override it in the config (e.g., config["ssm_depth"] = 8).
+        depth = int(config.get("ssm_depth", 4))
+        depth = max(depth, 2)
+
+        self.input = MambaBlock(n_in, n, norm=norm, ng=ng)
+
+        mid = []
+        for _ in range(depth - 2):
+            mid.append(MambaBlock(n, n, norm=norm, ng=ng))
+        self.mid = nn.Sequential(*mid) if len(mid) > 0 else nn.Identity()
 
         self.output = MambaBlock(n, n, norm=norm, ng=ng)
 
-    def forward(self, actors: Tensor) -> Tensor:
-        out = actors
-
-        outputs = []
-        for i in range(len(self.groups)):
-            out = self.groups[i](out)
-            outputs.append(out)
-
-        out = self.lateral[-1](outputs[-1]) #M, 512, 5
-        for i in range(len(self.groups) - 2, -1, -1):
-            out = self.Unet[i](out, outputs[i])
-
-
-        out = self.output(out)[:, :, -1]
-        return out
+    def forward(self, actors):
+        # actors: (N_actors, 5, T)
+        out = self.input(actors)
+        out = self.mid(out)
+        out = self.output(out)
+        return out[:, :, -1]
 
 
 class A2A(nn.Module):
+
     """
     The actor to actor block performs interactions among actors.
     """

@@ -5,14 +5,14 @@
 import numpy as np
 import os
 import sys
-from fractions import gcd
+from math import gcd
 from numbers import Number
 
 import torch
 from torch import Tensor, nn
 from torch.nn import functional as F
 from layer.Transformer_EncDec import Encoder, EncoderLayer
-from layer.SelfAttention_Family import FullAttention, AttentionLayer
+from layer.SelfAttention_Family import ProbAttention, AttentionLayer
 from layer.Embed import DataEmbedding_inverted, DataEmbedding
 from data import ArgoDataset, collate_fn
 from utils import gpu, to_long,  Optimizer, StepLR
@@ -66,20 +66,10 @@ config["val_workers"] = config["workers"]
 
 """Dataset"""
 # Raw Dataset
-root_path = "/hy-tmp"
-config["train_split"] = os.path.join(
-    root_path, "NGSIM/NGSIM24_5/train"
-)
-config["val_split"] = os.path.join(root_path, "NGSIM/NGSIM24_5/val")
-config["test_split"] = os.path.join(root_path, "NGSIM/NGSIM24_5/test")
-
-preprocess_dataset_base_path = "/hy-tmp"
-
-# Preprocessed Dataset
-config["preprocess"] = False  # Assuming you want to use preprocessed data
-config["preprocess_train"] = os.path.join(preprocess_dataset_base_path, "train.p")
-config["preprocess_val"] = os.path.join(preprocess_dataset_base_path, "val.p")
-config["preprocess_test"] = os.path.join(preprocess_dataset_base_path, "test.p")
+root_path = "/home/ps/WorkSpaces/wby/Timeba/data"
+config["train_split"] = os.path.join(root_path, "NGSIM/NGSIM6/train")
+config["val_split"] = os.path.join(root_path, "NGSIM/NGSIM6/val")
+config["test_split"] = os.path.join(root_path, "NGSIM/NGSIM6/test")
 
 """Model"""
 config["rot_aug"] = False
@@ -164,61 +154,108 @@ def actor_gather(actors: List[Tensor]) -> Tuple[Tensor, List[Tensor]]:
 
 
 
+
+class _ResBlock1D(nn.Module):
+    """Simple Conv-only residual block for the UNet-only ablation."""
+    def __init__(self, n_in: int, n_out: int, stride: int = 1, ng: int = 1):
+        super().__init__()
+        self.conv1 = nn.Conv1d(n_in, n_out, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.gn1 = nn.GroupNorm(num_groups=ng, num_channels=n_out)
+        self.conv2 = nn.Conv1d(n_out, n_out, kernel_size=3, stride=1, padding=1, bias=False)
+        self.gn2 = nn.GroupNorm(num_groups=ng, num_channels=n_out)
+        self.act = nn.GELU()
+
+        self.proj = None
+        if stride != 1 or n_in != n_out:
+            self.proj = nn.Sequential(
+                nn.Conv1d(n_in, n_out, kernel_size=1, stride=stride, bias=False),
+                nn.GroupNorm(num_groups=ng, num_channels=n_out),
+            )
+
+    def forward(self, x: Tensor) -> Tensor:
+        identity = x
+        out = self.act(self.gn1(self.conv1(x)))
+        out = self.gn2(self.conv2(out))
+        if self.proj is not None:
+            identity = self.proj(identity)
+        out = self.act(out + identity)
+        return out
+
+
+class _Unet1DConv(nn.Module):
+    """Conv-only UNet upsampling block (no Mamba/SSM)."""
+    def __init__(self, skip_in_channels: int, out_channels: int = 512, ng: int = 1):
+        super().__init__()
+        self.up = nn.ConvTranspose1d(out_channels, out_channels, kernel_size=2, stride=2)
+        self.adptconv = nn.Conv1d(skip_in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.gn_cat = nn.GroupNorm(num_groups=ng, num_channels=out_channels * 2)
+        self.conv = nn.Conv1d(out_channels * 2, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.gn = nn.GroupNorm(num_groups=ng, num_channels=out_channels)
+        self.act = nn.GELU()
+
+    def forward(self, x: Tensor, skip: Tensor) -> Tensor:
+        x = self.up(x)
+        skip = self.adptconv(skip)
+        x = torch.cat((x, skip), dim=1)
+        x = self.act(self.gn_cat(x))
+        x = self.act(self.gn(self.conv(x)))
+        return x
+
+
 class ActorNet(nn.Module):
+    """
+    Actor feature extractor (UNet-only ablation)
+
+    - Encoder: Conv residual blocks (no Mamba/SSM)
+    - Decoder: Conv-only UNet blocks with skip connections
+    - Output: last time step embedding
+    """
     def __init__(self, config):
         super(ActorNet, self).__init__()
-        config = {
-            'seq_len': 5,  # 输入序列长度
-            'n_out': 512,  # 输出特征维度
-            'd_model': 512,  # 嵌入维度
-            'embed': 'fixed',  # 嵌入类型
-            'freq': 'h',  # 时间频率
-            'dropout': 0.05,  # Dropout 比率
-            'factor': 2,  # FullAttention 的因子
-            'output_attention': False,  # 是否输出注意力权重
-            'n_heads': 4,  # 注意力头数
-            'e_layers': 2,  # 编码器层数
-            'd_ff': 1024,  # 前馈网络维度
-            'activation': 'gelu'  # 激活函数
-        }
         self.config = config
-        self.enc_embedding = DataEmbedding_inverted(config['seq_len'], config['d_model'], config['embed'], config['freq'], config['dropout'])
-        
-        self.encoder = Encoder(
-            [
-                EncoderLayer(
-                    AttentionLayer(
-                        FullAttention(False, config['factor'], attention_dropout=config['dropout'], output_attention=config['output_attention']),
-                        config['d_model'],
-                        config['n_heads']
-                    ),
-                    config['d_model'],
-                    config['d_ff'],
-                    dropout=config['dropout'],
-                    activation=config['activation']
-                ) for _ in range(config['e_layers'])
-            ],
-            norm_layer=nn.LayerNorm(config['d_model'])
-        )
+        ng = 1
 
-        self.projector = nn.Linear(config['d_model'], config['n_out'])
+        n_in = 5
+        n_out = [64, 128, 256, 512]
+        num_blocks = [1, 1, 1, 1]
 
-    def forward(self, actors):
-        embedded_actors = []
-        # print(f"Dimensions of actor {actors}: {actors.shape}")
-        # actors = actors.permute(0, 2, 1)
-        embedded_actors = self.enc_embedding(actors)  # 对每组 actor 进行嵌入
+        groups = []
+        for i in range(len(num_blocks)):
+            group = []
+            if i == 0:
+                group.append(_ResBlock1D(n_in, n_out[i], stride=1, ng=ng))
+            else:
+                group.append(_ResBlock1D(n_in, n_out[i], stride=2, ng=ng))
+            groups.append(nn.Sequential(*group))
+            n_in = n_out[i]
+        self.groups = nn.ModuleList(groups)
 
-        encoded_actors = []
-        encoded_actors, _ = self.encoder(embedded_actors)  # 使用编码器处理嵌入后的 actors
-        encoded_actors = encoded_actors[:, -1, :]
-        # 对变量维度进行平均池化
-        # encoded_actors = torch.cat((encoded_actors[:, 0, :], encoded_actors[:, 1, :], encoded_actors[:, 2, :]), dim=1)
-        # 应用最后的投影层
-        output = self.projector(encoded_actors)
+        n = config["n_actor"]
+        lateral = []
+        for i in range(len(n_out)):
+            # lightweight projection to actor embedding dim (only the last is used by default)
+            lateral.append(nn.Conv1d(n_out[i], n, kernel_size=1, stride=1, padding=0, bias=False))
+        self.lateral = nn.ModuleList(lateral)
 
-        return output
+        self.Unet = nn.ModuleList()
+        for i in range(len(n_out)):
+            self.Unet.append(_Unet1DConv(n_out[i], out_channels=n, ng=ng))
 
+        self.output = _ResBlock1D(n, n, stride=1, ng=ng)
+
+    def forward(self, actors: Tensor) -> Tensor:
+        out = actors
+        outputs = []
+        for i in range(len(self.groups)):
+            out = self.groups[i](out)
+            outputs.append(out)
+
+        out = self.lateral[-1](outputs[-1])
+        for i in range(len(self.groups) - 2, -1, -1):
+            out = self.Unet[i](out, outputs[i])
+
+        out = self.output(out)[:, :, -1]
+        return out
 
 class A2A(nn.Module):
     """

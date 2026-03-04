@@ -16,10 +16,9 @@ from layer.SelfAttention_Family import ProbAttention, AttentionLayer
 from layer.Embed import DataEmbedding_inverted, DataEmbedding
 from data import ArgoDataset, collate_fn
 from utils import gpu, to_long,  Optimizer, StepLR
-from layers import Conv1d, MambaBlock, Linear, LinearRes, LinearRes2, GroupNorm, Unet1d
+from layers import Linear, LinearRes, LinearRes2
 from numpy import float64, ndarray
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
-from mamba_ssm.modules.mamba_simple import Mamba
 from copy import deepcopy
 if torch.cuda.is_available():
     # 选择第一个可用的 GPU，您也可以根据需要更改设备编号
@@ -154,61 +153,135 @@ def actor_gather(actors: List[Tensor]) -> Tuple[Tensor, List[Tensor]]:
 
 
 
+class _ConvBlock1D(nn.Module):
+    """(Conv1d -> GN -> GELU) * 2"""
+    def __init__(self, c_in: int, c_out: int, groups: int = 1):
+        super().__init__()
+        g = max(1, min(groups, c_out))
+        self.net = nn.Sequential(
+            nn.Conv1d(c_in, c_out, kernel_size=3, padding=1, bias=False),
+            nn.GroupNorm(g, c_out),
+            nn.GELU(),
+            nn.Conv1d(c_out, c_out, kernel_size=3, padding=1, bias=False),
+            nn.GroupNorm(g, c_out),
+            nn.GELU(),
+        )
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self.net(x)
+
+
+class _Down1D(nn.Module):
+    """Downsample by 2 with a strided conv + conv block."""
+    def __init__(self, c_in: int, c_out: int, groups: int = 1):
+        super().__init__()
+        self.down = nn.Conv1d(c_in, c_out, kernel_size=4, stride=2, padding=1, bias=False)
+        g = max(1, min(groups, c_out))
+        self.norm = nn.GroupNorm(g, c_out)
+        self.act = nn.GELU()
+        self.block = _ConvBlock1D(c_out, c_out, groups=groups)
+
+    def forward(self, x: Tensor) -> Tensor:
+        x = self.down(x)
+        x = self.norm(x)
+        x = self.act(x)
+        return self.block(x)
+
+
+class _Up1D(nn.Module):
+    """Upsample by 2 with a transposed conv, concat skip, then conv block."""
+    def __init__(self, c_in: int, c_skip: int, c_out: int, groups: int = 1):
+        super().__init__()
+        self.up = nn.ConvTranspose1d(c_in, c_out, kernel_size=4, stride=2, padding=1, bias=False)
+        self.block = _ConvBlock1D(c_out + c_skip, c_out, groups=groups)
+
+    @staticmethod
+    def _match_length(x: Tensor, ref: Tensor) -> Tensor:
+        # Make x and ref have same temporal length (T) by cropping or padding.
+        tx, tr = x.size(-1), ref.size(-1)
+        if tx == tr:
+            return x
+        if tx > tr:
+            return x[..., :tr]
+        # pad right
+        pad = tr - tx
+        return F.pad(x, (0, pad))
+
+    def forward(self, x: Tensor, skip: Tensor) -> Tensor:
+        x = self.up(x)
+        x = self._match_length(x, skip)
+        x = torch.cat([x, skip], dim=1)
+        return self.block(x)
+
+
+class _UNet1D(nn.Module):
+    """
+    Pure 1D U-Net encoder/decoder over actor trajectories.
+    Input:  (M, C_in, T)
+    Output: (M, C_out, T)
+    """
+    def __init__(self, c_in: int, c_out: int = 512, base: int = 64, depth: int = 4, groups: int = 1):
+        super().__init__()
+        assert depth >= 2, "UNet depth should be >= 2"
+        chs = [base * (2 ** i) for i in range(depth)]  # e.g., 64,128,256,512
+
+        self.stem = _ConvBlock1D(c_in, chs[0], groups=groups)
+
+        self.downs = nn.ModuleList()
+        for i in range(1, depth):
+            self.downs.append(_Down1D(chs[i - 1], chs[i], groups=groups))
+
+        # bottleneck
+        self.mid = _ConvBlock1D(chs[-1], chs[-1], groups=groups)
+
+        self.ups = nn.ModuleList()
+        for i in range(depth - 1, 0, -1):
+            self.ups.append(_Up1D(chs[i], chs[i - 1], chs[i - 1], groups=groups))
+
+        self.head = nn.Conv1d(chs[0], c_out, kernel_size=1, bias=True)
+
+    def forward(self, x: Tensor) -> Tensor:
+        skips = []
+        x = self.stem(x)
+        skips.append(x)
+
+        for down in self.downs:
+            x = down(x)
+            skips.append(x)
+
+        x = self.mid(x)
+
+        # decode: use skips in reverse order (excluding the last skip that matches x)
+        for up, skip in zip(self.ups, reversed(skips[:-1])):
+            x = up(x, skip)
+
+        return self.head(x)
+
+
 class ActorNet(nn.Module):
     """
-    Actor feature extractor with MambaBlock
+    Actor feature extractor (Ablation): **pure 1D UNet**.
+    Replaces the original Mamba + custom U-shape design.
     """
     def __init__(self, config):
         super(ActorNet, self).__init__()
         self.config = config
-        norm = "GN"
-        ng = 1
 
-        n_in = 5
-        n_out = [64, 128, 256, 512]
-        blocks = [MambaBlock, MambaBlock, MambaBlock, MambaBlock]
-        num_blocks = [1, 1, 1, 1]
+        # Keep interface identical to the original ActorNet
+        c_in = 5
+        c_out = config.get("n_actor", 512)
 
-        groups = []
-        for i in range(len(num_blocks)):
-            group = []
-            if i == 0:
-                group.append(blocks[i](n_in, n_out[i], norm=norm, ng=ng))
-            else:
-                group.append(blocks[i](n_in, n_out[i], stride=2, norm=norm, ng=ng))
+        # You can tune these 2 knobs for ablation
+        base = config.get("unet_base", 64)
+        depth = config.get("unet_depth", 4)
 
-            groups.append(nn.Sequential(*group))
-            n_in = n_out[i]
-        self.groups = nn.ModuleList(groups) #self.groups有3个group，每个group有1个实例块，最后一个group维度是[M, 512, 5]
-        
-        n = config["n_actor"]
-        lateral = []
-        for i in range(len(n_out)):
-            lateral.append(Conv1d(n_out[i], n, norm=norm, ng=ng, act=False))
-        self.lateral = nn.ModuleList(lateral)
-
-        self.Unet = nn.ModuleList()
-        for i in range(len(n_out)):
-            self.Unet.append(Unet1d(n_out[i], 512))
-
-        self.output = MambaBlock(n, n, norm=norm, ng=ng)
+        # Use GroupNorm with 1 group (matches the original ng=1 default)
+        self.unet = _UNet1D(c_in=c_in, c_out=c_out, base=base, depth=depth, groups=1)
 
     def forward(self, actors: Tensor) -> Tensor:
-        out = actors
-
-        outputs = []
-        for i in range(len(self.groups)):
-            out = self.groups[i](out)
-            outputs.append(out)
-
-        out = self.lateral[-1](outputs[-1]) #M, 512, 5
-        for i in range(len(self.groups) - 2, -1, -1):
-            out = self.Unet[i](out, outputs[i])
-
-
-        out = self.output(out)[:, :, -1]
-        return out
-
+        # actors: (M, C, T)
+        feats = self.unet(actors)          # (M, n_actor, T)
+        return feats[:, :, -1]             # (M, n_actor)
 
 class A2A(nn.Module):
     """

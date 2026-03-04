@@ -77,16 +77,18 @@ class ArgoDataset(Dataset):
         trajs = np.concatenate((
             df.x.to_numpy().reshape(-1, 1),
             df.y.to_numpy().reshape(-1, 1),
-            # df.v_Width.to_numpy().reshape(-1, 1),
-            # df.v_Length.to_numpy().reshape(-1, 1),
-            # df.Local_X.to_numpy().reshape(-1, 1),
-            # df.Local_Y.to_numpy().reshape(-1, 1),
-            df.v_Vel.to_numpy().reshape(-1, 1),
-            df.v_Acc.to_numpy().reshape(-1, 1),
-            # df.Lane_ID.to_numpy().reshape(-1, 1),
-            # df.Space_Headway.to_numpy().reshape(-1, 1),
-            # df.Time_Headway.to_numpy().reshape(-1, 1),
-            # df.v_Class.to_numpy().reshape(-1, 1),
+            # df.heading.to_numpy().reshape(-1, 1),
+            # df.width.to_numpy().reshape(-1, 1),
+            # df.length.to_numpy().reshape(-1, 1),
+            df.xVelocity.to_numpy().reshape(-1, 1),
+            df.yVelocity.to_numpy().reshape(-1, 1),
+            df.xAcceleration.to_numpy().reshape(-1, 1),
+            df.yAcceleration.to_numpy().reshape(-1, 1),
+            # df.lonVelocity.to_numpy().reshape(-1, 1),
+            # df.latVelocity.to_numpy().reshape(-1, 1),
+            # df.lonAcceleration.to_numpy().reshape(-1, 1),
+            # df.latAcceleration.to_numpy().reshape(-1, 1),
+            # df.class2.to_numpy().reshape(-1, 1)
         ), 1)
         steps = [mapping[x] for x in df['frame'].values]
         steps = np.asarray(steps, np.int64)
@@ -115,12 +117,12 @@ class ArgoDataset(Dataset):
         return data
 
     def get_obj_feats(self, data):
-        orig = data['trajs'][0][23, :2].copy().astype(np.float32)
+        orig = data['trajs'][0][71, :2].copy().astype(np.float32)
 
         if self.train and self.config['rot_aug']:
             theta = np.random.rand() * np.pi * 2.0
         else:
-            pre = data['trajs'][0][22, :2] - orig
+            pre = data['trajs'][0][70, :2] - orig
             theta = np.pi - np.arctan2(pre[1], pre[0])
 
         rot = np.asarray([
@@ -129,18 +131,18 @@ class ArgoDataset(Dataset):
 
         feats, past, ctrs, gt_preds, has_preds = [], [], [], [], []
         for traj, step in zip(data['trajs'], data['steps']):
-            if 23 not in step:
+            if 71 not in step:
                 continue
 
-            gt_pred = np.zeros((50, 2), np.float32)
-            has_pred = np.zeros(50, bool)
-            future_mask = np.logical_and(step >= 24, step < 74)
-            post_step = step[future_mask] - 24
+            gt_pred = np.zeros((125, 2), np.float32)
+            has_pred = np.zeros(125, bool)
+            future_mask = np.logical_and(step >= 72, step < 197)
+            post_step = step[future_mask] - 72
             post_traj = traj[future_mask, :2]
             gt_pred[post_step] = post_traj
             has_pred[post_step] = 1
             
-            obs_mask = step < 24
+            obs_mask = step < 72
             step = step[obs_mask]
             traj = traj[obs_mask]
             idcs = step.argsort()
@@ -148,18 +150,18 @@ class ArgoDataset(Dataset):
             traj = traj[idcs]
             
             for i in range(len(step)):
-                if step[i] == 23 - (len(step) - 1) + i:
+                if step[i] == 71 - (len(step) - 1) + i:
                     break
             step = step[i:]
             traj = traj[i:]
 
-            feat = np.zeros((24, traj.shape[1] + 1), np.float32)  # +1 for the presence indicator
+            feat = np.zeros((72, traj.shape[1] + 1), np.float32)  # +1 for the presence indicator
             feat[step, :2] = np.matmul(rot, (traj[:, :2] - orig).T).T
             feat[step, 2:-1] = traj[:, 2:]  # the other features are not transformed
             feat[step, -1] = 1.0  # presence indicator
 
             # Extract past coordinates (original coordinates without transformation)
-            past_feat = np.zeros((24, 2), np.float32)
+            past_feat = np.zeros((72, 2), np.float32)
             past_feat[step, :2] = traj[:, :2]
 
             x_min, x_max, y_min, y_max = self.config['pred_range']

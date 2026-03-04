@@ -5,7 +5,7 @@
 import numpy as np
 import os
 import sys
-from fractions import gcd
+from math import gcd
 from numbers import Number
 
 import torch
@@ -66,20 +66,10 @@ config["val_workers"] = config["workers"]
 
 """Dataset"""
 # Raw Dataset
-root_path = "/hy-tmp"
-config["train_split"] = os.path.join(
-    root_path, "NGSIM/NGSIM24_5/train"
-)
-config["val_split"] = os.path.join(root_path, "NGSIM/NGSIM24_5/val")
-config["test_split"] = os.path.join(root_path, "NGSIM/NGSIM24_5/test")
-
-preprocess_dataset_base_path = "/hy-tmp"
-
-# Preprocessed Dataset
-config["preprocess"] = False  # Assuming you want to use preprocessed data
-config["preprocess_train"] = os.path.join(preprocess_dataset_base_path, "train.p")
-config["preprocess_val"] = os.path.join(preprocess_dataset_base_path, "val.p")
-config["preprocess_test"] = os.path.join(preprocess_dataset_base_path, "test.p")
+root_path = "/home/ps/WorkSpaces/wby/Timeba/data"
+config["train_split"] = os.path.join(root_path, "NGSIM/NGSIM6/train")
+config["val_split"] = os.path.join(root_path, "NGSIM/NGSIM6/val")
+config["test_split"] = os.path.join(root_path, "NGSIM/NGSIM6/test")
 
 """Model"""
 config["rot_aug"] = False
@@ -96,6 +86,7 @@ config["reg_coef"] = 1.0
 config["mgn"] = 0.2
 config["cls_th"] = 2.0
 config["cls_ignore"] = 0.2
+config["ablate_skip"] = True  # set True to remove U-Net skip connections in ActorNet
 ### end of config ###
 
 
@@ -123,7 +114,7 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.config = config
 
-        self.actor_net = ActorNet()
+        self.actor_net = ActorNet(config)
         self.a2a = A2A(config)
         self.pred_net = PredNet(config)
 
@@ -165,23 +156,65 @@ def actor_gather(actors: List[Tensor]) -> Tuple[Tensor, List[Tensor]]:
 
 
 class ActorNet(nn.Module):
-    def __init__(self):
+    """
+    Actor feature extractor with MambaBlock
+    """
+    def __init__(self, config):
         super(ActorNet, self).__init__()
-        self.mamba = Mamba(
-            d_model = 512,  # 模型维度
-            d_state = 16,    # SSM状态扩展因子
-            d_conv = 4,      # 局部卷积宽度
-            expand = 2       # 块扩展因子
-        )
-        self.layernorm = nn.LayerNorm(512)
-        self.projector = nn.Linear(5, 512)
-    def forward(self, actors):
-        actors = actors.permute(0, 2, 1) #M, 5, 20 -> M, 20, 5
-        actors = self.projector(actors)
-        Mamba = self.mamba(actors)
-        Mamba = self.layernorm(Mamba)
-        output = Mamba[:, -1, :]
-        return output
+        self.config = config
+        norm = "GN"
+        ng = 1
+
+        n_in = 5
+        n_out = [64, 128, 256, 512]
+        blocks = [MambaBlock, MambaBlock, MambaBlock, MambaBlock]
+        num_blocks = [1, 1, 1, 1]
+
+        groups = []
+        for i in range(len(num_blocks)):
+            group = []
+            if i == 0:
+                group.append(blocks[i](n_in, n_out[i], norm=norm, ng=ng))
+            else:
+                group.append(blocks[i](n_in, n_out[i], stride=2, norm=norm, ng=ng))
+
+            groups.append(nn.Sequential(*group))
+            n_in = n_out[i]
+        self.groups = nn.ModuleList(groups) #self.groups有3个group，每个group有1个实例块，最后一个group维度是[M, 512, 5]
+        
+        n = config["n_actor"]
+        lateral = []
+        for i in range(len(n_out)):
+            lateral.append(Conv1d(n_out[i], n, norm=norm, ng=ng, act=False))
+        self.lateral = nn.ModuleList(lateral)
+
+        self.Unet = nn.ModuleList()
+        for i in range(len(n_out)):
+            self.Unet.append(Unet1d(n_out[i], 512))
+
+        self.output = MambaBlock(n, n, norm=norm, ng=ng)
+
+    def forward(self, actors: Tensor) -> Tensor:
+        out = actors
+
+        outputs = []
+        for i in range(len(self.groups)):
+            out = self.groups[i](out)
+            outputs.append(out)
+
+        out = self.lateral[-1](outputs[-1]) #M, 512, 5
+        # U-Net style decoding with skip connections (ablation supported)
+        if not self.config.get("ablate_skip", False):
+            for i in range(len(self.groups) - 2, -1, -1):
+                out = self.Unet[i](out, outputs[i])
+        else:
+            # Skip-connection ablation: do NOT fuse multi-scale encoder features.
+            # Keep only the deepest scale feature for prediction.
+            pass
+
+
+        out = self.output(out)[:, :, -1]
+        return out
 
 
 class A2A(nn.Module):
