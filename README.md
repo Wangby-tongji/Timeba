@@ -112,7 +112,7 @@ If installation fails:
 
 ## Prepare Data
 
-download NGSIM dataset
+abtain original NGSIM dataset first
 
 ```python
 python dataprocess.py
