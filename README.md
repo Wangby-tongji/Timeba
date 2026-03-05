@@ -1,8 +1,6 @@
 # Timeba: Temporal U-Shape Hierarchy with Selective State-Space Modeling for Trajectory Prediction
 
-Timeba is a trajectory forecasting research codebase built on a LaneGCN-style pipeline, with **Mamba (Selective SSM)** blocks integrated into the actor encoder / 1D U-Net style temporal modeling.
-
-> ⚠️ Note: This repo currently contains multiple experimental model variants (e.g., `NGSIM24_5_4.py`, `highD*.py`, `inD*.py`, `exiD*.py`) and training scripts (`train1.py`, `train2.py`). The default data pipeline in this repo is based on **Argoverse Motion Forecasting (v1.1)**.
+This repository provides the official implementation of Timeba, a trajectory prediction model featuring an explicit 1D temporal U-shape hierarchy with selective state-space (Mamba/SSM) blocks for efficient long-range sequence modeling. It includes end-to-end training/testing pipelines, dataset preprocessing scripts, and profiling utilities (latency/FLOPs/throughput) to reproduce accuracy and efficiency results on highway trajectory datasets.
 
 ---
 
