@@ -113,8 +113,10 @@ If installation fails:
 ## Prepare Data
 
 download NGSIM dataset
-python dataprocess.py
 
+```python
+python dataprocess.py
+```
 ---
 
 ## Training
