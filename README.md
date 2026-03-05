@@ -1,4 +1,4 @@
-# Timeba: Mamba-augmented Trajectory Prediction
+# Timeba: Temporal U-Shape Hierarchy with Selective State-Space Modeling for Trajectory Prediction
 
 Timeba is a trajectory forecasting research codebase built on a LaneGCN-style pipeline, with **Mamba (Selective SSM)** blocks integrated into the actor encoder / 1D U-Net style temporal modeling.
 
