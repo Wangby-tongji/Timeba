@@ -112,11 +112,8 @@ If installation fails:
 
 ## Prepare Data
 
-A helper script is provided:
-
-```bash
-bash get_data.sh
-```
+download NGSIM dataset
+python dataprocess.py
 
 ---
 
