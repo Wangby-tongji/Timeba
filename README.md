@@ -4,7 +4,10 @@ This repository provides the official implementation of Timeba, a trajectory pre
 
 
 ---
+---
 <img width="227" height="156" alt="image" src="https://github.com/user-attachments/assets/de5d5f40-e96a-4956-893f-3b691d9f100c" />
+---
+
 ## Table of Contents
 - [Requirements](#requirements)
 - [Install (Recommended)](#install-recommended)
