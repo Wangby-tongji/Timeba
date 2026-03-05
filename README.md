@@ -1,6 +1,6 @@
 # Timeba: Temporal U-Shape Hierarchy with Selective State-Space Modeling for Trajectory Prediction
 
-![Timeba Temporal U-Shape Hierarchy](./assets/timeba encoder.png)
+![Timeba Temporal U-Shape Hierarchy](./assets/Timeba Encoder.jpg)
 
 This repository provides the official implementation of Timeba, a trajectory prediction model featuring an explicit 1D temporal U-shape hierarchy with selective state-space (Mamba/SSM) blocks for efficient long-range sequence modeling. It includes end-to-end training/testing pipelines, dataset preprocessing scripts, and profiling utilities (latency/FLOPs/throughput) to reproduce accuracy and efficiency results on highway trajectory datasets.
 
