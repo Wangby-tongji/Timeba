@@ -1,0 +1,41 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Test, coverage, and tooling caches
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Build and packaging output
+build/
+dist/
+*.egg-info/
+
+# Runtime outputs
+results/
+checkpoints/
+*.ckpt
+*.pth
+*.pkl
+
+# Local datasets and temporary preprocessing output
+data/
+NGSIM/
+highD/
+inD/
+exiD/
+*.__tmp__/
+
+# Editors and operating-system metadata
+.DS_Store
+.idea/
+.vscode/
