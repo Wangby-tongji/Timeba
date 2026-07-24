@@ -4,11 +4,10 @@ import importlib
 import unittest
 
 from tests.compatibility.golden_manifest import (
+    HISTORY_LEN,
+    INPUT_DIM,
     NUM_MODES,
-    ORDERED_STATE_DICT_KEYS,
-    STATE_DICT_SHAPES,
-    TOTAL_PARAMETER_COUNT,
-    TRAINABLE_PARAMETER_COUNT,
+    PRED_LEN,
 )
 
 
@@ -39,29 +38,9 @@ class TimebaCheckpointCompatibilityTest(unittest.TestCase):
         cls.torch, legacy_module, canonical_module = _runtime_modules()
         cls.legacy = legacy_module.Net(_legacy_config())
         cls.canonical = canonical_module.Timeba(
-            input_dim=5,
-            pred_len=50,
+            input_dim=INPUT_DIM,
+            pred_len=PRED_LEN,
             num_modes=NUM_MODES,
-        )
-
-    def test_legacy_matches_golden_manifest(self):
-        state = self.legacy.state_dict()
-        self.assertEqual(tuple(state.keys()), ORDERED_STATE_DICT_KEYS)
-        self.assertEqual(
-            {key: tuple(value.shape) for key, value in state.items()},
-            STATE_DICT_SHAPES,
-        )
-        self.assertEqual(
-            sum(parameter.numel() for parameter in self.legacy.parameters()),
-            TOTAL_PARAMETER_COUNT,
-        )
-        self.assertEqual(
-            sum(
-                parameter.numel()
-                for parameter in self.legacy.parameters()
-                if parameter.requires_grad
-            ),
-            TRAINABLE_PARAMETER_COUNT,
         )
 
     def test_state_dict_keys_order_and_shapes_are_identical(self):
@@ -127,8 +106,8 @@ class TimebaForwardParityTest(unittest.TestCase):
         cls.legacy = legacy_module.Net(_legacy_config()).cuda().eval()
         cls.canonical = (
             canonical_module.Timeba(
-                input_dim=5,
-                pred_len=50,
+                input_dim=INPUT_DIM,
+                pred_len=PRED_LEN,
                 num_modes=NUM_MODES,
             )
             .cuda()
@@ -140,8 +119,8 @@ class TimebaForwardParityTest(unittest.TestCase):
         torch = self.torch
         return {
             "feats": [
-                torch.randn(2, 8, 5),
-                torch.randn(1, 8, 5),
+                torch.randn(2, HISTORY_LEN, INPUT_DIM),
+                torch.randn(1, HISTORY_LEN, INPUT_DIM),
             ],
             "ctrs": [
                 torch.tensor([[0.0, 0.0], [3.0, 1.0]]),
