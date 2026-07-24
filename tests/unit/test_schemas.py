@@ -87,6 +87,28 @@ class SchemaAndFeatureSpecTest(unittest.TestCase):
             4,
         )
 
+    def test_input_dim_changes_with_feature_selection(self):
+        ngsim = get_dataset_schema("ngsim")
+        canonical = resolve_feature_spec(
+            ngsim,
+            NGSIM_PAPER.feature_spec,
+        )
+        with_dimensions = resolve_feature_spec(
+            ngsim,
+            FeatureSpec(
+                groups=(
+                    "position",
+                    "dimensions",
+                    "velocity",
+                    "acceleration",
+                ),
+                include_presence=True,
+            ),
+        )
+        self.assertEqual(canonical.input_dim, 5)
+        self.assertEqual(with_dimensions.input_dim, 7)
+        self.assertNotEqual(canonical.input_dim, with_dimensions.input_dim)
+
     def test_commented_ablation_candidates_are_registered(self):
         self.assertIn(
             "space_headway",
