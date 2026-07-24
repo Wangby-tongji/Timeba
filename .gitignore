@@ -28,11 +28,11 @@ checkpoints/
 *.pkl
 
 # Local datasets and temporary preprocessing output
-data/
-NGSIM/
-highD/
-inD/
-exiD/
+/data/
+/NGSIM/
+/highD/
+/inD/
+/exiD/
 *.__tmp__/
 
 # Editors and operating-system metadata
