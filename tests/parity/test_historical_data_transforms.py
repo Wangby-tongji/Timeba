@@ -1,6 +1,5 @@
-"""Compare canonical transformations with the actual historical loader code."""
+"""Golden parity checks for the certified historical data transformations."""
 
-import importlib.util
 import unittest
 from pathlib import Path
 
@@ -11,58 +10,20 @@ from timeba.config.presets import EXID_PAPER, HIGHD_PAPER, NGSIM_PAPER
 from timeba.data.registry import build_dataset
 
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-
-
-class _SyntheticSequence:
-    def __init__(self, frame, city):
-        self.seq_df = frame
-        self.city = city
-
-
-class _SyntheticLoader:
-    def __init__(self, frame, city):
-        self.sequence = _SyntheticSequence(frame, city)
-
-    def __getitem__(self, _index):
-        return self.sequence
-
-
-def _load_historical_module(relative_path, module_name):
-    path = REPOSITORY_ROOT / relative_path
-    spec = importlib.util.spec_from_file_location(module_name, path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def _historical_item(relative_path, module_name, frame):
-    module = _load_historical_module(relative_path, module_name)
-    dataset = module.ArgoDataset.__new__(module.ArgoDataset)
-    dataset.config = {
-        "rot_aug": False,
-        "pred_range": [-100.0, 100.0, -100.0, 100.0],
-    }
-    dataset.train = False
-    dataset.avl = _SyntheticLoader(frame, city="synthetic")
-    data = dataset.read_argo_data(0)
-    data = dataset.get_obj_feats(data)
-    data["idx"] = 0
-    return data
+FIXTURE_DIRECTORY = (
+    Path(__file__).resolve().parents[1] / "fixtures" / "data_transformations"
+)
+SOURCE_COMMIT = "bd71f945d84484b2e0ebbc3988c6eb211d7db574"
 
 
 class HistoricalDataTransformationParityTest(unittest.TestCase):
     CASES = (
         (
             NGSIM_PAPER,
-            "visualize_dev/data.py",
-            "timeba_historical_ngsim_24_50",
             ("x", "y", "v_Vel", "v_Acc", "__presence__"),
         ),
         (
             HIGHD_PAPER,
-            "datah.py",
-            "timeba_historical_highd",
             (
                 "x",
                 "y",
@@ -78,8 +39,6 @@ class HistoricalDataTransformationParityTest(unittest.TestCase):
         ),
         (
             EXID_PAPER,
-            "datae.py",
-            "timeba_historical_exid",
             (
                 "x",
                 "y",
@@ -92,7 +51,7 @@ class HistoricalDataTransformationParityTest(unittest.TestCase):
         ),
     )
 
-    def test_historical_and_canonical_transformations_match(self):
+    def test_canonical_transformations_match_historical_golden_fixtures(self):
         array_keys = (
             "feats",
             "past",
@@ -102,61 +61,77 @@ class HistoricalDataTransformationParityTest(unittest.TestCase):
             "orig",
             "rot",
         )
-        for experiment, path, module_name, expected_channels in self.CASES:
+        for experiment, expected_channels in self.CASES:
             with self.subTest(experiment=experiment.name):
-                frame = make_synthetic_frame(experiment)
-                historical = _historical_item(
-                    path,
-                    module_name,
-                    frame,
-                )
-                canonical_dataset = build_dataset(
-                    [frame],
-                    experiment,
-                    train=False,
-                )
-                canonical = canonical_dataset[0]
+                fixture_path = FIXTURE_DIRECTORY / f"{experiment.name}.npz"
+                with np.load(fixture_path, allow_pickle=False) as golden:
+                    canonical_dataset = build_dataset(
+                        [make_synthetic_frame(experiment)],
+                        experiment,
+                        train=False,
+                    )
+                    canonical = canonical_dataset[0]
 
-                self.assertEqual(
-                    canonical_dataset.resolved_features.tensor_channels,
-                    expected_channels,
-                )
-                self.assertEqual(
-                    canonical["feats"].shape[1:],
-                    (
-                        experiment.history_len,
-                        len(expected_channels),
-                    ),
-                )
-                self.assertEqual(
-                    canonical["gt_preds"].shape[1:],
-                    (experiment.pred_len, 2),
-                )
-                self.assertEqual(
-                    canonical["has_preds"].shape[1:],
-                    (experiment.pred_len,),
-                )
+                    self.assertEqual(str(golden["source_commit"]), SOURCE_COMMIT)
+                    self.assertEqual(str(golden["dataset"]), experiment.dataset)
+                    self.assertEqual(int(golden["history_len"]), experiment.history_len)
+                    self.assertEqual(int(golden["pred_len"]), experiment.pred_len)
+                    self.assertEqual(
+                        tuple(golden["channels"].tolist()),
+                        expected_channels,
+                    )
+                    self.assertEqual(
+                        tuple(golden["actor_order"].tolist()),
+                        ("AGENT", "OTHERS"),
+                    )
+                    self.assertEqual(
+                        canonical_dataset.resolved_features.tensor_channels,
+                        expected_channels,
+                    )
+                    self.assertEqual(
+                        canonical["feats"].shape,
+                        (
+                            len(golden["actor_order"]),
+                            experiment.history_len,
+                            len(expected_channels),
+                        ),
+                    )
+                    self.assertEqual(
+                        canonical["gt_preds"].shape,
+                        (
+                            len(golden["actor_order"]),
+                            experiment.pred_len,
+                            2,
+                        ),
+                    )
+                    self.assertEqual(
+                        canonical["has_preds"].shape,
+                        (
+                            len(golden["actor_order"]),
+                            experiment.pred_len,
+                        ),
+                    )
 
-                for key in array_keys:
-                    with self.subTest(experiment=experiment.name, key=key):
-                        if key == "has_preds":
-                            np.testing.assert_array_equal(
-                                canonical[key],
-                                historical[key],
-                            )
-                        else:
-                            np.testing.assert_allclose(
-                                canonical[key],
-                                historical[key],
-                                rtol=0.0,
-                                atol=1e-6,
-                            )
-                self.assertAlmostEqual(
-                    canonical["theta"],
-                    historical["theta"],
-                    places=7,
-                )
-                self.assertEqual(canonical["idx"], historical["idx"])
+                    for key in array_keys:
+                        with self.subTest(experiment=experiment.name, key=key):
+                            if key == "has_preds":
+                                np.testing.assert_array_equal(
+                                    canonical[key],
+                                    golden[key],
+                                )
+                            else:
+                                np.testing.assert_allclose(
+                                    canonical[key],
+                                    golden[key],
+                                    rtol=0.0,
+                                    atol=1e-6,
+                                )
+                    self.assertAlmostEqual(
+                        canonical["theta"],
+                        float(golden["theta"]),
+                        places=7,
+                    )
+                    self.assertEqual(canonical["idx"], int(golden["idx"]))
 
 
 if __name__ == "__main__":

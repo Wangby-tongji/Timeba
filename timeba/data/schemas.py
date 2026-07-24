@@ -80,22 +80,7 @@ EXID_SCHEMA = DatasetSchema(
     },
 )
 
-IND_SCHEMA = DatasetSchema(
-    name="ind",
-    feature_groups={
-        "position": ("x", "y"),
-        "heading": ("heading",),
-        "dimensions": ("width", "length"),
-        "velocity": ("xVelocity", "yVelocity"),
-        "acceleration": ("xAcceleration", "yAcceleration"),
-        "lane_velocity": ("lonVelocity", "latVelocity"),
-        "lane_acceleration": ("lonAcceleration", "latAcceleration"),
-        "vehicle_class": ("class2",),
-    },
-)
-
-
 DATASET_SCHEMAS = {
     schema.name: schema
-    for schema in (NGSIM_SCHEMA, HIGHD_SCHEMA, EXID_SCHEMA, IND_SCHEMA)
+    for schema in (NGSIM_SCHEMA, HIGHD_SCHEMA, EXID_SCHEMA)
 }

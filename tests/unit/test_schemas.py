@@ -3,7 +3,6 @@ import unittest
 from timeba.config.presets import (
     EXID_PAPER,
     HIGHD_PAPER,
-    IND_HISTORICAL_EXTENSION,
     NGSIM_PAPER,
 )
 from timeba.data.features import FeatureSpec, resolve_feature_spec
@@ -44,24 +43,11 @@ class SchemaAndFeatureSpecTest(unittest.TestCase):
                 ),
                 7,
             ),
-            "ind_historical_extension": (
-                (
-                    "x",
-                    "y",
-                    "xVelocity",
-                    "yVelocity",
-                    "xAcceleration",
-                    "yAcceleration",
-                    "__presence__",
-                ),
-                7,
-            ),
         }
         for experiment in (
             NGSIM_PAPER,
             HIGHD_PAPER,
             EXID_PAPER,
-            IND_HISTORICAL_EXTENSION,
         ):
             with self.subTest(experiment=experiment.name):
                 schema = get_dataset_schema(experiment.dataset)
@@ -121,10 +107,6 @@ class SchemaAndFeatureSpecTest(unittest.TestCase):
         self.assertIn(
             "lead_time_to_collision",
             get_dataset_schema("exid").feature_groups,
-        )
-        self.assertIn(
-            "lane_velocity",
-            get_dataset_schema("ind").feature_groups,
         )
 
 

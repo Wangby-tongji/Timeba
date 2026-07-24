@@ -56,25 +56,12 @@ EXID_PAPER = ExperimentConfig(
     ),
 )
 
-IND_HISTORICAL_EXTENSION = ExperimentConfig(
-    name="ind_historical_extension",
-    dataset="ind",
-    history_len=72,
-    pred_len=125,
-    feature_spec=FeatureSpec(
-        groups=("position", "velocity", "acceleration"),
-        include_presence=True,
-    ),
-)
-
-
 _PRESETS = {
     config.name: config
     for config in (
         NGSIM_PAPER,
         HIGHD_PAPER,
         EXID_PAPER,
-        IND_HISTORICAL_EXTENSION,
     )
 }
 

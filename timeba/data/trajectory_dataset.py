@@ -1,4 +1,4 @@
-"""Shared trajectory construction for NGSIM, highD, exiD, and inD."""
+"""Shared trajectory construction for the supported NGSIM, highD, and exiD datasets."""
 
 import copy
 from pathlib import Path

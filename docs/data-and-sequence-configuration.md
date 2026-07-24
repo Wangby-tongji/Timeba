@@ -45,7 +45,8 @@ The aligned values are intentional implementation policy. They must not be
 changed solely to reproduce nominal prose values when that would violate
 temporal U-shape alignment or the available trajectory window.
 
-Synthetic parity tests compare these canonical transformations with the
-historical loaders. They validate channel ordering, slicing, coordinate
-transforms, targets, masks, and actor metadata without redesigning historical
+Synthetic parity tests compare these canonical transformations with small
+golden outputs generated from the actual historical loaders before cleanup.
+They validate channel ordering, slicing, coordinate transforms, targets, masks,
+and actor metadata without importing historical code or redesigning historical
 velocity or acceleration handling.

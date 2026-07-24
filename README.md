@@ -1,179 +1,133 @@
-# Timeba: Temporal U-Shape Hierarchy with Selective State-Space Modeling for Trajectory Prediction
+# Timeba
 
-![Timeba Temporal U-Shape Hierarchy](./assets/Timeba_Encoder.jpg)
+Timeba is a multimodal vehicle-trajectory prediction model built around a
+temporal U-shaped hierarchy and selective state-space (Mamba) blocks.
 
-This repository provides the official implementation of Timeba, a trajectory prediction model featuring an explicit 1D temporal U-shape hierarchy with selective state-space (Mamba/SSM) blocks for efficient long-range sequence modeling. It includes end-to-end training/testing pipelines, dataset preprocessing scripts, and profiling utilities (latency/FLOPs/throughput) to reproduce accuracy and efficiency results on highway trajectory datasets.
-
----
-
-## Table of Contents
-- [Requirements](#requirements)
-- [Install (Recommended)](#install-recommended)
-- [Mamba Installation Notes](#mamba-installation-notes)
-- [Prepare Data (Argoverse Forecasting v1.1)](#prepare-data-argoverse-forecasting-v11)
-- [Training](#training)
-- [Testing / Evaluation](#testing--evaluation)
-- [Troubleshooting](#troubleshooting)
-- [License & Citation](#license--citation)
-
----
-
-## Requirements
-
-### OS / Hardware
-- **Linux + NVIDIA GPU** is strongly recommended.
-- `mamba-ssm` / `causal-conv1d` require **CUDA ≥ 11.6** and **PyTorch ≥ 1.12** (GPU build).  
-  See official Mamba installation requirements:
-  - https://github.com/state-spaces/mamba
-
-> If you only have CPU, you will need to disable Mamba usage or refactor the code.
-
-### Python
-- ✅ Recommended: **Python 3.10** (3.11 also works in most cases)
-- Not recommended: Python 3.7/3.8 (too old for modern PyTorch + mamba ecosystem)
-
----
-
-## Install (Recommended)
-
-### 1) Create a clean environment
-Using conda:
-
-```bash
-conda create -n timeba python=3.10 -y
-conda activate timeba
-python -V
-```
-
-### 2) Install PyTorch (GPU)
-Install a CUDA-enabled PyTorch build that matches your driver / CUDA runtime. Choose **one**:
-
-**Option A (conda, recommended if you use conda):**
-```bash
-# Example (CUDA 12.1)
-conda install pytorch torchvision pytorch-cuda=12.1 -c pytorch -c nvidia
-```
-
-**Option B (pip):**
-Use the PyTorch official install selector and install the correct CUDA wheel for your system.
-
-### 3) Install core python deps
-```bash
-pip install -U pip setuptools wheel
-pip install numpy scipy pandas tqdm ipdb matplotlib scikit-image
-```
-
-### 4) Install Mamba (mamba-ssm + causal-conv1d)
-**Recommended one-liner (installs both):**
-```bash
-pip install "mamba-ssm[causal-conv1d]" --no-build-isolation
-```
-
-If you prefer explicit installation:
-```bash
-pip install "causal-conv1d>=1.4.0" --no-build-isolation
-pip install "mamba-ssm" --no-build-isolation
-```
-
-### 5) Sanity check
-```bash
-python - <<'PY'
-import torch
-print("torch:", torch.__version__, "cuda:", torch.version.cuda, "is_available:", torch.cuda.is_available())
-
-from mamba_ssm import Mamba
-x = torch.randn(2, 64, 16, device="cuda")
-m = Mamba(d_model=16, d_state=16, d_conv=4, expand=2).cuda()
-y = m(x)
-print("mamba ok:", y.shape)
-PY
-```
-
----
-
-## Mamba Installation Notes
-
-- Official Mamba install guide suggests:
-  - `pip install mamba-ssm[causal-conv1d]`
-  - add `--no-build-isolation` if pip complains about PyTorch/CUDA toolchain.
-- Requirements (official):
-  - Linux, NVIDIA GPU, CUDA ≥ 11.6, PyTorch ≥ 1.12.
-
-If installation fails:
-1. **Make sure PyTorch is installed first** (GPU build), then install `mamba-ssm`.
-2. Try verbose install:
-   ```bash
-   pip install "mamba-ssm[causal-conv1d]" --no-build-isolation -v
-   ```
-3. Ensure `nvcc -V` works if pip is building from source.
-4. Prefer matching versions: (PyTorch CUDA wheel) ↔ (system driver).
-
----
-
-## Prepare Data
-
-abtain original NGSIM dataset first
+This branch provides one canonical model API:
 
 ```python
-python dataprocess.py
+from timeba import Timeba
+
+model = Timeba(
+    input_dim=resolved_features.input_dim,
+    pred_len=experiment.pred_len,
+    num_modes=experiment.num_modes,
+)
 ```
----
 
-## Training
+`input_dim` is derived from the selected feature groups. It is not an intrinsic
+fixed dimension of NGSIM, highD, or exiD:
 
-### Single GPU training
-Use `train.py` (prints parameter count and logs into `save_dir/log`):
+```text
+DatasetSchema
+  -> FeatureSpec
+  -> ordered raw channels plus derived presence channel
+  -> input_dim
+```
+
+The default presets currently resolve to 5 channels for NGSIM, 10 for highD,
+and 7 for exiD. These values describe the present selections only. In
+particular, the repository does not claim that the highD selection is proven to
+be the exact feature configuration of every paper table.
+
+## Aligned implementation settings
+
+The temporal U-shape has three downsampling/upsampling stages. The
+implementation therefore uses conservative aligned histories while preserving
+the required prediction horizons and available trajectory windows:
+
+| Dataset | Nominal history | Aligned history | Prediction |
+| --- | ---: | ---: | ---: |
+| NGSIM | 30 | 24 | 50 |
+| highD | 75 | 72 | 125 |
+| exiD | 75 | 72 | 125 |
+
+These are aligned implementation settings, not a claim that the executable
+step counts literally equal the nominal prose values. See
+[data and sequence configuration](docs/data-and-sequence-configuration.md).
+
+## Installation
+
+The certified environment used Python 3.10.20, PyTorch 2.1.2+cu121,
+mamba-ssm 1.2.2, causal-conv1d 1.2.2.post1, and an NVIDIA L40. Other compatible
+versions may also work. See [installation](docs/INSTALL.md).
+
+## Prepared data
+
+The official pipeline consumes prepared per-scene CSV files:
+
+```text
+DATA_ROOT/
+  train/*.csv
+  val/*.csv
+  test/*.csv
+```
+
+See [prepared input format](docs/DATA_FORMAT.md). The cleanup did not verify a
+complete raw-download-to-training pipeline for every dataset, so unverified
+historical preprocessing scripts are not presented as official tooling.
+
+## Training and evaluation
+
+Use the single config-driven CLI:
 
 ```bash
-python train.py -m NGSIM24_5_4
-# or
-python train.py -m highD64
-# or
-python train.py -m inD3_5_6
+python -m scripts.train \
+  --experiment ngsim_paper \
+  --data-root /path/to/prepared/data \
+  --output-dir /path/to/new/run
 ```
-
-Resume / eval:
 
 ```bash
-python train.py -m NGSIM24_5_4 --resume /absolute/path/to/ckpt.pth
-python train.py -m NGSIM24_5_4 --eval --weight /absolute/path/to/ckpt.pth
+python -m scripts.evaluate \
+  --experiment ngsim_paper \
+  --data-root /path/to/prepared/data \
+  --checkpoint /path/to/checkpoint.ckpt \
+  --split val \
+  --output /path/to/metrics.json
 ```
 
-### Multi-GPU / Distributed
-This repo historically included Horovod instructions, but your current training entrypoints may differ by branch/version.
-If you decide to use Horovod, install `mpi4py` + `horovod` and launch with `horovodrun`.
+Available official presets are `ngsim_paper`, `highd_paper`, and
+`exid_paper`. Checkpoint loading is strict by default, and evaluation uses each
+preset's configured prediction horizon while preserving K=1/K=6 semantics.
 
----
+## Validation status
 
-## Testing / Evaluation
+The canonical model extraction passed runtime-equivalence certification against
+the historical NGSIM implementation:
 
-### Run inference on val/test
-```bash
-python test.py -m NGSIM24_5_4 --weight /home/ps/WorkSpaces/wby/Timeba/Timeba/results/NGSIM24_5_4/48.000.ckpt --split=val
-python test.py -m NGSIM24_5_4 --weight /home/ps/WorkSpaces/wby/Timeba/Timeba/results/NGSIM24_5_4/48.000.ckpt --split=test
+- 316 identical ordered state-dict entries
+- 38,629,465 parameters
+- bidirectional `strict=True` checkpoint loading
+- actor encoder, actor interaction, and prediction-head parity
+- classification and trajectory maximum absolute error of 0.0
+
+See [runtime equivalence](docs/RUNTIME_EQUIVALENCE.md).
+
+Synthetic tests additionally cover dataset transformation, collation, forward,
+historical loss, backward, Adam update, checkpoint save/reload, and evaluation
+shapes for the NGSIM, highD, and exiD presets. These tests establish code-chain
+consistency; they are not a full retraining or numerical reproduction of every
+paper table. Full paper metrics were not rerun during repository cleanup.
+
+## Historical research code
+
+The untouched pre-cleanup implementation is permanently preserved on branch
+`orin` at commit:
+
+```text
+1114c0dd976b07914010827ddd26f4f43f9d70e6
 ```
 
-For validation split, the script calls Argoverse metric computation.
+It contains the original experiment modules, ablations, scaling variants,
+dataset loaders, visualization scripts, and third-party-derived utilities.
+They are intentionally not duplicated in the cleaned main layout.
 
----
+## Attribution and citation
 
-## Troubleshooting
+The repository `LICENSE` remains unchanged. Relevant source-file notices are
+preserved, and removed historical third-party-derived files remain available in
+`orin`. See [third-party notices](THIRD_PARTY_NOTICES.md).
 
-### 1) `mamba-ssm / causal-conv1d` install fails
-- Ensure CUDA-enabled PyTorch is installed first.
-- Retry with:
-  ```bash
-  pip install "mamba-ssm[causal-conv1d]" --no-build-isolation
-  ```
-- Check CUDA toolchain / driver compatibility.
-
-### 2) Shape mismatch in temporal U-Net
-Some model variants downsample time by stride=2 multiple times.
-Ensure your input sequence length is compatible (often needs to be divisible by 8).
-
----
-
-## License & Citation
-
-- This repository contains research code. Please check `LICENSE` if provided.
-- If you use Mamba, please cite the Mamba paper (see the official Mamba repo / PyPI page).
+If you use Timeba in research, cite the Timeba paper and the Mamba work used by
+the implementation.

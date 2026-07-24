@@ -1,0 +1,7 @@
+# Broad compatibility ranges for the cleaned canonical pipeline.
+# See docs/INSTALL.md for the exact environment used for certification.
+numpy>=1.26,<2
+pandas>=2.0
+torch>=2.1
+mamba-ssm>=1.2
+causal-conv1d>=1.2
