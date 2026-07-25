@@ -3,7 +3,13 @@
 Timeba is a multimodal vehicle-trajectory prediction model built around a
 temporal U-shaped hierarchy and selective state-space (Mamba) blocks.
 
-![Timeba temporal U-shaped architecture](assets/Timeba_Encoder.jpg)
+<p align="center">
+  <img
+    src="assets/Timeba_Encoder.jpg"
+    alt="Timeba temporal U-shaped architecture"
+    width="800"
+  >
+</p>
 
 This branch provides one canonical model API:
 
@@ -116,24 +122,10 @@ shapes for the NGSIM, highD, and exiD presets. These tests establish code-chain
 consistency; they are not a full retraining or numerical reproduction of every
 paper table. Full paper metrics were not rerun during repository cleanup.
 
-## Historical research code
-
-The untouched pre-cleanup implementation is permanently preserved on branch
-`orin` at commit:
-
-```text
-1114c0dd976b07914010827ddd26f4f43f9d70e6
-```
-
-It contains the original experiment modules, ablations, scaling variants,
-dataset loaders, visualization scripts, and third-party-derived utilities.
-They are intentionally not duplicated in the cleaned main layout.
-
 ## Attribution and citation
 
 The repository `LICENSE` remains unchanged. Relevant source-file notices are
-preserved, and removed historical third-party-derived files remain available in
-`orin`. See [third-party notices](THIRD_PARTY_NOTICES.md).
+preserved. See [third-party notices](THIRD_PARTY_NOTICES.md).
 
 If you use Timeba in research, cite the Timeba paper and the Mamba work used by
 the implementation.
