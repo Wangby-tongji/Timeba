@@ -30,7 +30,7 @@ The canonical paper-oriented presets require complete target windows:
 
 Required selected columns are resolved from `DatasetSchema` and `FeatureSpec`;
 they are not represented by a fixed intrinsic dataset dimension. See
-`docs/data-and-sequence-configuration.md`.
+`docs/CONFIGURATION.md`.
 
 Historical preprocessing utilities were removed because the complete raw-data
 pipeline and unit conventions could not be verified without the original

@@ -1,18 +1,13 @@
 <div align="center">
 
-<h1>Timeba</h1>
-
-<h2>
-Temporal U-Shape Hierarchy with Selective State-Space Modeling<br>
-for Trajectory Prediction
-</h2>
+<h1>Timeba: Temporal U-Shape Hierarchy with Selective State-Space Modeling for Trajectory Prediction</h1>
 
 <p><strong>A clean reference implementation for multimodal vehicle-trajectory prediction.</strong></p>
 
 [Paper](https://www.researchsquare.com/article/rs-8501461/latest.pdf) ·
 [Installation](docs/INSTALL.md) ·
 [Data format](docs/DATA_FORMAT.md) ·
-[Configuration](docs/data-and-sequence-configuration.md)
+[Configuration](docs/CONFIGURATION.md)
 
 ![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.1.2-EE4C2C?logo=pytorch&logoColor=white)
@@ -130,21 +125,20 @@ python -m scripts.evaluate \
 Checkpoint loading is strict by default. Evaluation uses the prediction horizon
 configured by each preset and reports the historical K=1 and K=6 semantics.
 
-## Configuration presets
+## Configurations
 
-Ready-to-use configurations are provided for the three supported datasets:
+Ready-to-use configurations are provided for NGSIM, highD, and exiD:
 
 - `ngsim_paper`
 - `highd_paper`
 - `exid_paper`
 
-Each preset defines the dataset schema, selected feature groups, sequence
-configuration, and training schedule. The model input dimension is resolved
+Each configuration defines the dataset schema, selected feature groups,
+sequence settings, and training schedule. The model input dimension is resolved
 automatically from the selected features.
 
-See [Data and sequence configuration](docs/data-and-sequence-configuration.md)
-for detailed feature mappings, temporally aligned sequence lengths, and
-historical implementation notes.
+See [Data and sequence configuration](docs/CONFIGURATION.md)
+for feature mappings and implementation details.
 
 ## Repository structure
 
@@ -168,7 +162,7 @@ Timeba/
 | --- | --- |
 | [Installation](docs/INSTALL.md) | Tested CUDA, PyTorch, and Mamba setup |
 | [Prepared data format](docs/DATA_FORMAT.md) | Required CSV layout and fields |
-| [Data and sequence configuration](docs/data-and-sequence-configuration.md) | Feature resolution, aligned sequence lengths, and LR notes |
+| [Data and sequence configuration](docs/CONFIGURATION.md) | Feature resolution, aligned sequence lengths, and LR notes |
 | [Runtime equivalence](docs/RUNTIME_EQUIVALENCE.md) | Canonical-to-historical implementation certification |
 | [Third-party notices](THIRD_PARTY_NOTICES.md) | Attribution and derived-code notices |
 

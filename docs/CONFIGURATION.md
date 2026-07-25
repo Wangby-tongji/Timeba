@@ -17,8 +17,7 @@ mask is a derived channel rather than a raw dataset attribute. Consequently,
 changing a `FeatureSpec` can change `input_dim` without changing the dataset
 schema.
 
-The historically grounded, paper-oriented presets currently resolve as
-follows:
+The default dataset configurations currently resolve as follows:
 
 | Preset | Selected raw channels | Derived channel | Resolved input_dim |
 | --- | --- | --- | ---: |
@@ -29,30 +28,23 @@ follows:
 These numbers describe the current feature selections, not fixed properties of
 NGSIM, highD, or exiD.
 
-## Conservative temporal alignment
+## Sequence configuration
 
-The manuscript describes a nominal 3-second observation horizon. The
-historically recovered implementation uses aligned discrete history lengths of
-24 steps for NGSIM and 72 steps for highD/exiD. These lengths preserve exact
-temporal alignment through the three-stage downsampling hierarchy while
-retaining the complete prediction horizon.
+The released configurations use temporally aligned history lengths that match
+the three-stage downsampling hierarchy while preserving the complete prediction
+horizon and respecting the available trajectory window.
 
-| Dataset | Nominal manuscript history | Historically recovered aligned history | Prediction horizon | Total window |
-| --- | ---: | ---: | ---: | ---: |
-| NGSIM | 30 | 24 | 50 | 74 |
-| highD | 75 | 72 | 125 | 197 |
-| exiD | 75 | 72 | 125 | 197 |
+- **NGSIM:** 24 history steps and 50 prediction steps.
+- **highD:** 72 history steps and 125 prediction steps.
+- **exiD:** 72 history steps and 125 prediction steps.
 
-The aligned implementation lengths preserve the complete prediction horizon,
-do not use more observation history than the nominal setting, satisfy all
-three stride-2 temporal downsampling stages, and respect the available
-sequence-window length. In particular, 24 NGSIM steps are an aligned discrete
-implementation length; they are not described here as exactly 3 seconds.
+These are the discrete sequence lengths used by the cleaned implementation.
+They are documented here as implementation settings rather than as exact
+conversions of the nominal observation duration stated in the manuscript.
 
-The repository cleanup did not rerun the complete paper experiments, so the
-implementation difference is documented rather than retrospectively resolved.
-The repository does not infer that every reported experiment necessarily used
-one recovered source snapshot.
+The repository cleanup did not rerun the complete paper experiments, so no
+claim is made that every reported experiment used one recovered source
+snapshot.
 
 ## Historically preserved learning-rate schedules
 
