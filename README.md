@@ -1,10 +1,13 @@
 <div align="center">
 
-# Timeba
+<h1>Timeba</h1>
 
-**Temporal U-Shape Hierarchy with Selective State-Space Modeling for Trajectory Prediction**
+<h2>
+Temporal U-Shape Hierarchy with Selective State-Space Modeling<br>
+for Trajectory Prediction
+</h2>
 
-A clean reference implementation for multimodal vehicle-trajectory prediction.
+<p><strong>A clean reference implementation for multimodal vehicle-trajectory prediction.</strong></p>
 
 [Paper](https://www.researchsquare.com/article/rs-8501461/latest.pdf) ·
 [Installation](docs/INSTALL.md) ·
@@ -22,7 +25,7 @@ A clean reference implementation for multimodal vehicle-trajectory prediction.
   <img
     src="assets/Timeba_Encoder.jpg"
     alt="Timeba temporal U-shaped architecture"
-    width="820"
+    width="680"
   >
 </p>
 
@@ -127,27 +130,21 @@ python -m scripts.evaluate \
 Checkpoint loading is strict by default. Evaluation uses the prediction horizon
 configured by each preset and reports the historical K=1 and K=6 semantics.
 
-## Presets
+## Configuration presets
 
-The repository provides historically grounded, paper-oriented presets for
-NGSIM, highD, and exiD.
+Ready-to-use configurations are provided for the three supported datasets:
 
-| Preset | Dataset | History | Prediction | Resolved input dimension |
-| --- | --- | ---: | ---: | ---: |
-| `ngsim_paper` | NGSIM | 24 | 50 | 5 |
-| `highd_paper` | highD | 72 | 125 | 10 |
-| `exid_paper` | exiD | 72 | 125 | 7 |
+- `ngsim_paper`
+- `highd_paper`
+- `exid_paper`
 
-The dimensions above are the result of the current feature selections, not
-intrinsic constants of the datasets. Feature groups can be changed, and
-`input_dim` is resolved automatically.
+Each preset defines the dataset schema, selected feature groups, sequence
+configuration, and training schedule. The model input dimension is resolved
+automatically from the selected features.
 
-The manuscript describes a nominal 3-second observation setting. The released
-presets use aligned discrete history lengths that preserve the full prediction
-horizon and satisfy the temporal hierarchy and available sequence windows. See
-[data and sequence configuration](docs/data-and-sequence-configuration.md) for
-the implementation details and the historically preserved learning-rate
-schedules.
+See [Data and sequence configuration](docs/data-and-sequence-configuration.md)
+for detailed feature mappings, temporally aligned sequence lengths, and
+historical implementation notes.
 
 ## Repository structure
 
