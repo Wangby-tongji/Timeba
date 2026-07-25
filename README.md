@@ -3,6 +3,8 @@
 Timeba is a multimodal vehicle-trajectory prediction model built around a
 temporal U-shaped hierarchy and selective state-space (Mamba) blocks.
 
+![Timeba temporal U-shaped architecture](assets/Timeba_Encoder.jpg)
+
 This branch provides one canonical model API:
 
 ```python
