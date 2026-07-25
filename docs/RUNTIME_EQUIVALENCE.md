@@ -19,7 +19,8 @@ Certified canonical configuration:
 
 Results:
 
-- 316 state_dict entries had identical ordered keys and tensor shapes
+- 316 ordered state_dict entries were identical
+- all state_dict keys and tensor shapes were identical
 - total/trainable parameter count: 38,629,465
 - historical to canonical `strict=True` loading succeeded
 - canonical to historical `strict=True` loading succeeded
@@ -43,6 +44,13 @@ cleaned main branch after the historical implementation is removed. The golden
 state-dict manifest remains as a regression test, and the complete original
 source remains permanently available in `orin`.
 
-This certification establishes implementation equivalence for the extracted
+Verification scope:
+
+- runtime implementation equivalence: verified
+- synthetic pipeline consistency: verified
+- historical NGSIM/highD/exiD data-transformation parity: verified
+- complete paper-metric reproduction after cleanup: not rerun
+
+Runtime certification establishes implementation equivalence for the extracted
 model. It is not a rerun of full dataset training or every metric table in the
 paper.

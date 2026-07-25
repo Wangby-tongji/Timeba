@@ -17,7 +17,8 @@ mask is a derived channel rather than a raw dataset attribute. Consequently,
 changing a `FeatureSpec` can change `input_dim` without changing the dataset
 schema.
 
-The paper-oriented presets currently resolve as follows:
+The historically grounded, paper-oriented presets currently resolve as
+follows:
 
 | Preset | Selected raw channels | Derived channel | Resolved input_dim |
 | --- | --- | --- | ---: |
@@ -30,20 +31,40 @@ NGSIM, highD, or exiD.
 
 ## Conservative temporal alignment
 
-The implementation uses aligned histories that do not exceed the nominal paper
-histories, preserve the required prediction horizons, fit within the available
-trajectory windows, and remain compatible with the three temporal
-downsampling/upsampling stages:
+The manuscript describes a nominal 3-second observation horizon. The
+historically recovered implementation uses aligned discrete history lengths of
+24 steps for NGSIM and 72 steps for highD/exiD. These lengths preserve exact
+temporal alignment through the three-stage downsampling hierarchy while
+retaining the complete prediction horizon.
 
-| Dataset | Nominal history | Canonical aligned history | Prediction | Required window |
+| Dataset | Nominal manuscript history | Historically recovered aligned history | Prediction horizon | Total window |
 | --- | ---: | ---: | ---: | ---: |
 | NGSIM | 30 | 24 | 50 | 74 |
 | highD | 75 | 72 | 125 | 197 |
 | exiD | 75 | 72 | 125 | 197 |
 
-The aligned values are intentional implementation policy. They must not be
-changed solely to reproduce nominal prose values when that would violate
-temporal U-shape alignment or the available trajectory window.
+The aligned implementation lengths preserve the complete prediction horizon,
+do not use more observation history than the nominal setting, satisfy all
+three stride-2 temporal downsampling stages, and respect the available
+sequence-window length. In particular, 24 NGSIM steps are an aligned discrete
+implementation length; they are not described here as exactly 3 seconds.
+
+The repository cleanup did not rerun the complete paper experiments, so the
+implementation difference is documented rather than retrospectively resolved.
+The repository does not infer that every reported experiment necessarily used
+one recovered source snapshot.
+
+## Historically preserved learning-rate schedules
+
+The cleaned NGSIM preset retains the historical source schedule ending at
+`4e-5`. The cleaned highD and exiD presets preserve the final learning rate of
+`1e-5` found in their corresponding historical source snapshots, with
+milestones at epochs 32 and 42.
+
+The manuscript prose reports a different final learning rate of `4e-5` for
+those settings. Because complete metric reproduction was not rerun during
+repository cleanup, this difference is documented rather than silently
+changed. No claim is made here about which value produced a published result.
 
 Synthetic parity tests compare these canonical transformations with small
 golden outputs generated from the actual historical loaders before cleanup.

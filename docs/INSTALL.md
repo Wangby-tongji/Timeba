@@ -36,3 +36,12 @@ source build on machines without a matching CUDA compiler.
 
 The certified versions are a tested compatibility point, not a declaration
 that no other versions work.
+
+Verify the installed packages and public entrypoints from the repository root:
+
+```bash
+python -m pip check
+python -c "from mamba_ssm.modules.mamba_simple import Mamba; print(Mamba)"
+python -m scripts.train --help
+python -m scripts.evaluate --help
+```
