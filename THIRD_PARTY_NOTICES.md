@@ -3,7 +3,8 @@
 The canonical neural-network implementation in `timeba/models/` and the
 historical loss in `timeba/losses.py` were extracted from research code carrying
 Uber Technologies / LaneGCN notices. Those source-file notices are retained.
-The repository `LICENSE` is unchanged.
+The extracted files also carry dated modification notices describing their
+2026 modularization and integration. The repository `LICENSE` is unchanged.
 
 Timeba depends on `mamba-ssm`, developed by Albert Gu, Tri Dao, and
 contributors. The cleaned repository imports the installed dependency and no

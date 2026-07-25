@@ -1,6 +1,10 @@
 # Copyright (c) 2020 Uber Technologies, Inc.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Modified by the Timeba authors on 2026-07-25 during repository cleanup.
+# Changes include extraction, modularization, and integration into the
+# canonical Timeba reference implementation.
 
 """Multimodal trajectory prediction head from the historical full model."""
 

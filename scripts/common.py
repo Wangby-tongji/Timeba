@@ -74,5 +74,37 @@ def write_json(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
 
 
+def load_metrics_history(path, resume_epoch):
+    """Load prior metric records without silently rewinding a run."""
+    path = Path(path)
+    if not path.exists():
+        return []
+    value = json.loads(path.read_text())
+    if not isinstance(value, list):
+        raise ValueError(f"metrics history must be a JSON list: {path}")
+
+    previous_epoch = 0
+    for index, record in enumerate(value):
+        if not isinstance(record, dict) or "epoch" not in record:
+            raise ValueError(
+                f"metrics history record {index} must contain an epoch"
+            )
+        epoch = record["epoch"]
+        if not isinstance(epoch, (int, float)) or isinstance(epoch, bool):
+            raise ValueError(
+                f"metrics history record {index} has an invalid epoch"
+            )
+        if epoch <= previous_epoch:
+            raise ValueError("metrics history epochs must be strictly increasing")
+        previous_epoch = epoch
+
+    if value and previous_epoch > resume_epoch:
+        raise ValueError(
+            "metrics history is ahead of the resume checkpoint: "
+            f"{previous_epoch} > {resume_epoch}"
+        )
+    return value
+
+
 def experiment_dict(experiment):
     return asdict(experiment)

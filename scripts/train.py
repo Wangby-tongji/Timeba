@@ -11,6 +11,7 @@ from scripts.common import (
     add_common_arguments,
     build_split_loader,
     experiment_dict,
+    load_metrics_history,
     resolve_experiment,
     seed_everything,
     write_json,
@@ -65,7 +66,6 @@ def main():
         raise FileExistsError(
             f"output directory is not empty: {output_dir}"
         )
-    write_json(output_dir / "experiment.json", experiment_dict(experiment))
 
     train_loader = build_split_loader(
         experiment,
@@ -82,6 +82,7 @@ def main():
     components = build_pipeline(experiment, device="cuda")
 
     start_epoch = 0
+    metrics_log = []
     if args.resume is not None:
         payload, _ = load_checkpoint(
             args.resume,
@@ -91,8 +92,12 @@ def main():
             map_location="cpu",
         )
         start_epoch = int(payload["epoch"])
+        metrics_log = load_metrics_history(
+            output_dir / "metrics.json",
+            resume_epoch=start_epoch,
+        )
 
-    metrics_log = []
+    write_json(output_dir / "experiment.json", experiment_dict(experiment))
     for epoch_index in range(start_epoch, experiment.training.epochs):
         train_loss = 0.0
         batches = 0

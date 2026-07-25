@@ -1,5 +1,9 @@
 # Copyright (c) 2020 Uber Technologies, Inc.
 # Please check LICENSE for more detail
+#
+# Modified by the Timeba authors on 2026-07-25 during repository cleanup.
+# Changes include extraction, modularization, and integration into the
+# canonical Timeba reference implementation.
 
 """Historical neural-network blocks used by the canonical Timeba model."""
 
