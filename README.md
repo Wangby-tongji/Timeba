@@ -191,9 +191,13 @@ If you find Timeba useful in your research, please cite:
   doi     = {10.21203/rs.3.rs-8501461/v1},
   url     = {https://doi.org/10.21203/rs.3.rs-8501461/v1}
 }
+```
 
 The final journal citation will be added after formal publication.
 
+Timeba builds on the selective state-space modeling introduced in Mamba:
+
+```bibtex
 @article{gu2023mamba,
   title   = {Mamba: Linear-Time Sequence Modeling with Selective State Spaces},
   author  = {Gu, Albert and Dao, Tri},
@@ -202,6 +206,7 @@ The final journal citation will be added after formal publication.
   doi     = {10.48550/arXiv.2312.00752},
   url     = {https://arxiv.org/abs/2312.00752}
 }
+```
 
 ## License and attribution
 
