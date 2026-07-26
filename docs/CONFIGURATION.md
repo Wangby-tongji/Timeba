@@ -30,21 +30,19 @@ NGSIM, highD, or exiD.
 
 ## Sequence configuration
 
-The released configurations use temporally aligned history lengths that match
-the three-stage downsampling hierarchy while preserving the complete prediction
-horizon and respecting the available trajectory window.
+Timeba uses three stride-2 temporal downsampling stages. To maintain exact
+temporal alignment throughout the U-shaped hierarchy, the default
+configurations use the following sequence lengths:
 
 - **NGSIM:** 24 history steps and 50 prediction steps.
 - **highD:** 72 history steps and 125 prediction steps.
 - **exiD:** 72 history steps and 125 prediction steps.
 
-These are the discrete sequence lengths used by the cleaned implementation.
-They are documented here as implementation settings rather than as exact
-conversions of the nominal observation duration stated in the manuscript.
-
-The repository cleanup did not rerun the complete paper experiments, so no
-claim is made that every reported experiment used one recovered source
-snapshot.
+These settings preserve the complete prediction horizon while remaining
+compatible with the temporal hierarchy and the available trajectory windows.
+The manuscript describes the observation horizon in seconds, whereas the
+implementation uses dataset-dependent discrete sequence lengths that
+approximate this horizon while satisfying temporal-alignment constraints.
 
 ## Historically preserved learning-rate schedules
 
