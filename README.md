@@ -1,26 +1,33 @@
-<div align="center">
+<h1>
+Timeba: Temporal U-Shape Hierarchy with Selective State-Space Modeling for Trajectory Prediction
+</h1>
 
-<h1>Timeba: Temporal U-Shape Hierarchy with Selective State-Space Modeling for Trajectory Prediction</h1>
+<p>
+<strong>A clean and reproducible implementation of Timeba for multimodal vehicle trajectory prediction.</strong>
+</p>
 
-<p><strong>A clean reference implementation for multimodal vehicle-trajectory prediction.</strong></p>
+<p>
+<a href="https://www.researchsquare.com/article/rs-8501461/latest.pdf">Paper</a> ·
+<a href="docs/INSTALL.md">Installation</a> ·
+<a href="docs/DATA_FORMAT.md">Data Format</a> ·
+<a href="docs/CONFIGURATION.md">Configuration</a>
+</p>
 
-[Paper](https://www.researchsquare.com/article/rs-8501461/latest.pdf) ·
-[Installation](docs/INSTALL.md) ·
-[Data format](docs/DATA_FORMAT.md) ·
-[Configuration](docs/CONFIGURATION.md)
+<p>
 
-![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.1.2-EE4C2C?logo=pytorch&logoColor=white)
-![Mamba](https://img.shields.io/badge/Mamba-1.2.2-6A5ACD)
-![License](https://img.shields.io/badge/License-Non--commercial-lightgrey)
+<img src="https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white">
+<img src="https://img.shields.io/badge/PyTorch-2.1.2-EE4C2C?logo=pytorch&logoColor=white">
+<img src="https://img.shields.io/badge/Mamba-1.2.2-6A5ACD">
+<img src="https://img.shields.io/badge/License-Non--commercial-lightgrey">
 
-</div>
+</p>
+
 
 <p align="center">
   <img
     src="assets/Timeba_Encoder.jpg"
     alt="Timeba temporal U-shaped architecture"
-    width="680"
+    width="600"
   >
 </p>
 
