@@ -136,9 +136,9 @@ configured by each preset and reports the historical K=1 and K=6 semantics.
 
 Ready-to-use configurations are provided for NGSIM, highD, and exiD:
 
-- `ngsim_paper`
-- `highd_paper`
-- `exid_paper`
+- `ngsim`
+- `highd`
+- `exid`
 
 Each configuration defines the dataset schema, selected feature groups,
 sequence settings, and training schedule. The model input dimension is resolved
