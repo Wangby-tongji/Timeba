@@ -2,8 +2,8 @@
 Timeba
 </h1>
 
-<p>
-<strong>: Temporal U-Shape Hierarchy with Selective State-Space Modeling for Trajectory Prediction</strong>
+<p align="center">
+<strong>Temporal U-Shape Hierarchy with Selective State-Space Modeling for Trajectory Prediction</strong>
 </p>
 
 <p align="center">
