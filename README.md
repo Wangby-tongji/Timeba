@@ -180,11 +180,15 @@ not rerun during repository cleanup.
 
 ## Citation
 
-If you use Timeba in your research, please cite the Timeba paper and the Mamba
-work used by the implementation:
+If you use Timeba in your research, please cite the following preprint:
 
-- *Timeba: Temporal U-Shape Hierarchy with Selective State-Space Modeling for Trajectory Prediction*
-- *Mamba: Linear-Time Sequence Modeling with Selective State Spaces*
+- [*Timeba: UNet State Space Model for Trajectory Prediction*](https://www.researchsquare.com/article/rs-8501461/latest)
+
+Timeba builds on the selective state-space modeling introduced in Mamba:
+
+- [*Mamba: Linear-Time Sequence Modeling with Selective State Spaces*](https://arxiv.org/abs/2312.00752)
+
+The final journal citation will be added after formal publication.
 
 ## License and attribution
 
