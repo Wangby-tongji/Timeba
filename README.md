@@ -2,7 +2,7 @@
 Timeba: Temporal U-Shape Hierarchy with Selective State-Space Modeling for Trajectory Prediction
 </h1>
 
-<p align="center">
+<p>
 <strong>A clean and reproducible implementation of Timeba for multimodal vehicle trajectory prediction.</strong>
 </p>
 
