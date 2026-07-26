@@ -180,15 +180,28 @@ not rerun during repository cleanup.
 
 ## Citation
 
-If you use Timeba in your research, please cite the following preprint:
+If you find Timeba useful in your research, please cite:
 
-- [*Timeba: UNet State Space Model for Trajectory Prediction*](https://www.researchsquare.com/article/rs-8501461/latest)
-
-Timeba builds on the selective state-space modeling introduced in Mamba:
-
-- [*Mamba: Linear-Time Sequence Modeling with Selective State Spaces*](https://arxiv.org/abs/2312.00752)
+```bibtex
+@article{wang2026timeba,
+  title   = {Timeba: UNet State Space Model for Trajectory Prediction},
+  author  = {Wang, Baoyun and He, Lei and Li, Zichong},
+  journal = {Research Square},
+  year    = {2026},
+  doi     = {10.21203/rs.3.rs-8501461/v1},
+  url     = {https://doi.org/10.21203/rs.3.rs-8501461/v1}
+}
 
 The final journal citation will be added after formal publication.
+
+@article{gu2023mamba,
+  title   = {Mamba: Linear-Time Sequence Modeling with Selective State Spaces},
+  author  = {Gu, Albert and Dao, Tri},
+  journal = {arXiv preprint arXiv:2312.00752},
+  year    = {2023},
+  doi     = {10.48550/arXiv.2312.00752},
+  url     = {https://arxiv.org/abs/2312.00752}
+}
 
 ## License and attribution
 
