@@ -2,18 +2,18 @@
 Timeba: Temporal U-Shape Hierarchy with Selective State-Space Modeling for Trajectory Prediction
 </h1>
 
-<p>
+<p align="center">
 <strong>A clean and reproducible implementation of Timeba for multimodal vehicle trajectory prediction.</strong>
 </p>
 
-<p>
+<p align="center">
 <a href="https://www.researchsquare.com/article/rs-8501461/latest.pdf">Paper</a> ·
 <a href="docs/INSTALL.md">Installation</a> ·
 <a href="docs/DATA_FORMAT.md">Data Format</a> ·
 <a href="docs/CONFIGURATION.md">Configuration</a>
 </p>
 
-<p>
+<p align="center">
 
 <img src="https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white">
 <img src="https://img.shields.io/badge/PyTorch-2.1.2-EE4C2C?logo=pytorch&logoColor=white">
@@ -27,7 +27,7 @@ Timeba: Temporal U-Shape Hierarchy with Selective State-Space Modeling for Traje
   <img
     src="assets/Timeba_Encoder.jpg"
     alt="Timeba temporal U-shaped architecture"
-    width="600"
+    width="720"
   >
 </p>
 
